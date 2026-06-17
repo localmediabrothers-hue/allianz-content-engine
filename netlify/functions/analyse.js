@@ -23,8 +23,7 @@ async function startApifyRun(actorId, input) {
 
 async function pollRun(actorId, runId) {
   const token = process.env.APIFY_API_KEY;
-  const MAX_POLLS = 40;
-  for (let i = 0; i < MAX_POLLS; i++) {
+  for (let i = 0; i < 40; i++) {
     await new Promise(r => setTimeout(r, 4000));
     const res = await fetch(`${APIFY_BASE}/acts/${actorId}/runs/${runId}?token=${token}`);
     const { data } = await res.json();
@@ -62,15 +61,15 @@ async function scrapeVideo(url) {
     return {
       platform,
       url,
-      description: v.text || v.desc || '',
-      plays: v.playCount ?? v.stats?.playCount ?? 0,
+      caption: v.text || v.desc || '',
+      views: v.playCount ?? v.stats?.playCount ?? 0,
       likes: v.diggCount ?? v.stats?.diggCount ?? 0,
       comments: v.commentCount ?? v.stats?.commentCount ?? 0,
       shares: v.shareCount ?? v.stats?.shareCount ?? 0,
       hashtags: v.hashtags?.map(h => h.name || h) ?? [],
       author: v.authorMeta?.name ?? v.author?.uniqueId ?? '',
-      duration: v.videoMeta?.duration ?? v.duration ?? 0,
-      createdAt: v.createTimeISO ?? '',
+      duration: `${v.videoMeta?.duration ?? v.duration ?? 0}s`,
+      topComments: [],
     };
   } else {
     const run = await startApifyRun('apify~instagram-reel-scraper', {
@@ -84,14 +83,15 @@ async function scrapeVideo(url) {
     return {
       platform,
       url,
-      description: v.caption ?? v.alt ?? '',
-      plays: v.videoPlayCount ?? v.playsCount ?? 0,
+      caption: v.caption ?? v.alt ?? '',
+      views: v.videoPlayCount ?? v.playsCount ?? 0,
       likes: v.likesCount ?? v.likes ?? 0,
       comments: v.commentsCount ?? v.comments ?? 0,
+      shares: 0,
       hashtags: v.hashtags ?? [],
       author: v.ownerUsername ?? v.owner?.username ?? '',
-      duration: v.videoDuration ?? 0,
-      createdAt: v.timestamp ?? '',
+      duration: `${v.videoDuration ?? 0}s`,
+      topComments: [],
     };
   }
 }
@@ -99,86 +99,51 @@ async function scrapeVideo(url) {
 async function analyseWithClaude(videoData) {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const prompt = `You are a viral content strategist for Allianz Housing Limited — a UK supported/transitional accommodation provider. The target audience is Universal Credit (UC) and DSS claimants looking for housing across the UK. Filming is done in Coventry, posting to @allianzhousinguk on TikTok and Instagram.
+  const prompt = `You are a viral content strategist for Allianz Housing Limited — a UK supported/transitional accommodation provider. Target audience: Universal Credit (UC) and DSS claimants seeking housing across the UK. Content posted to @allianzhousinguk on TikTok and Instagram. Filming in Coventry properties.
 
-Analyse this viral housing video and return a full content intelligence report.
+Analyse this viral housing video data and return a JSON object — no markdown, no code fences, just raw JSON.
 
 VIDEO DATA:
 ${JSON.stringify(videoData, null, 2)}
 
-Return your response in this exact structure:
-
-## VIRAL ANALYSIS
-
-**Viral Score:** [1-10]/10
-**Hook Score:** [1-10]/10
-
-**Why It Worked:**
-[2-3 sentences on the core viral mechanics — what made people stop, watch, and share]
-
-**Emotion Triggered:**
-[Primary emotion, e.g. Hope / Relief / FOMO / Curiosity / Shock / Validation]
-
-**Audience Insight:**
-[Who resonated with this and why — keep it focused on UC/DSS claimants needing housing]
-
----
-
-## 3 READY-TO-FILM SCRIPTS FOR ALLIANZ HOUSING
-
-### Script 1: [Title]
-**Hook (first 3 seconds):**
-[Opening line — should stop the scroll instantly]
-
-**Script:**
-[30-60 seconds. Presenter on camera, Coventry property. Casual, direct — NOT corporate. Mention UC/DSS eligibility, no deposit, bills included where relevant. First person.]
-
-**CTA:** Apply at referrals@allianzhousing.org
-
----
-
-### Script 2: [Title]
-**Hook (first 3 seconds):**
-[Opening line]
-
-**Script:**
-[30-60 seconds. Same tone.]
-
-**CTA:** Apply at referrals@allianzhousing.org
-
----
-
-### Script 3: [Title]
-**Hook (first 3 seconds):**
-[Opening line]
-
-**Script:**
-[30-60 seconds. Same tone.]
-
-**CTA:** Apply at referrals@allianzhousing.org
-
----
-
-## 5 STANDALONE HOOKS
-
-1. [Hook — works as a TikTok/Reel opening line on its own]
-2. [Hook]
-3. [Hook]
-4. [Hook]
-5. [Hook]
-
----
-
-## HASHTAG STRATEGY
-
-**High reach:**
-[6-8 broad hashtags]
-
-**Niche/targeted:**
-[6-8 specific hashtags for UC/housing audience]
-
-**Branded:**
-#allianzhousing #allianzhousinguk #UCHousing`;
+Return ONLY this JSON structure (fill in all fields):
+{
+  "viralScore": <number 1-10>,
+  "hookScore": <number 1-10>,
+  "retentionScore": <number 1-10>,
+  "emotionScore": <number 1-10>,
+  "ctaScore": <number 1-10>,
+  "emotionTriggered": "<single emotion e.g. Hope, Relief, FOMO, Curiosity, Shock>",
+  "audienceInsight": "<2-3 sentences on who resonated and why — UC/DSS claimants focus>",
+  "whyItWorked": ["<reason 1>", "<reason 2>", "<reason 3>"],
+  "hookFormula": "<the repeatable hook pattern from this video>",
+  "scripts": [
+    {
+      "title": "<script title>",
+      "hook": "<opening 3 seconds — stops the scroll>",
+      "body": "<30-60 second script. Presenter on camera in Coventry property. Casual, direct, NOT corporate. Mention UC/DSS eligibility, no deposit, bills included where relevant.>",
+      "cta": "Apply now at referrals@allianzhousing.org",
+      "why": "<one sentence on why this angle works for Allianz>"
+    },
+    {
+      "title": "<script title>",
+      "hook": "<opening 3 seconds>",
+      "body": "<30-60 second script>",
+      "cta": "Apply now at referrals@allianzhousing.org",
+      "why": "<one sentence>"
+    },
+    {
+      "title": "<script title>",
+      "hook": "<opening 3 seconds>",
+      "body": "<30-60 second script>",
+      "cta": "Apply now at referrals@allianzhousing.org",
+      "why": "<one sentence>"
+    }
+  ],
+  "topHooks": ["<hook 1>", "<hook 2>", "<hook 3>", "<hook 4>", "<hook 5>"],
+  "hashtagStrategy": ["allianzhousing", "allianzhousinguk", "<tag3>", "<tag4>", "<tag5>", "<tag6>", "<tag7>", "<tag8>", "<tag9>", "<tag10>"],
+  "warningSignals": ["<warning 1 if any>"]
+}`;
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
@@ -186,7 +151,11 @@ Return your response in this exact structure:
     messages: [{ role: 'user', content: prompt }],
   });
 
-  return response.content[0].text;
+  const text = response.content[0].text.trim();
+  const jsonStart = text.indexOf('{');
+  const jsonEnd = text.lastIndexOf('}');
+  if (jsonStart === -1 || jsonEnd === -1) throw new Error('Claude returned invalid JSON');
+  return JSON.parse(text.slice(jsonStart, jsonEnd + 1));
 }
 
 const corsHeaders = {
