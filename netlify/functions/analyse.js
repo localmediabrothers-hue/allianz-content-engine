@@ -20,11 +20,11 @@ async function startApifyRun(actorId, input) {
   return data;
 }
 
-async function pollRun(actorId, runId) {
+async function pollRun(runId) {
   const token = process.env.APIFY_API_KEY;
   for (let i = 0; i < 40; i++) {
     await new Promise(r => setTimeout(r, 4000));
-    const res = await fetch(`${APIFY_BASE}/acts/${actorId}/runs/${runId}?token=${token}`);
+    const res = await fetch(`${APIFY_BASE}/actor-runs/${runId}?token=${token}`);
     const { data } = await res.json();
     if (data.status === 'SUCCEEDED') return;
     if (data.status === 'FAILED' || data.status === 'ABORTED') {
@@ -34,10 +34,10 @@ async function pollRun(actorId, runId) {
   throw new Error('Apify run timed out after 160 seconds');
 }
 
-async function fetchDatasetItems(actorId, runId) {
+async function fetchDatasetItems(datasetId) {
   const token = process.env.APIFY_API_KEY;
   const res = await fetch(
-    `${APIFY_BASE}/acts/${actorId}/runs/${runId}/dataset/items?token=${token}`
+    `${APIFY_BASE}/datasets/${datasetId}/items?token=${token}`
   );
   if (!res.ok) throw new Error(`Apify dataset fetch failed (${res.status})`);
   return res.json();
@@ -53,8 +53,8 @@ async function scrapeVideo(url) {
       shouldDownloadVideos: false,
       shouldDownloadCovers: false,
     });
-    await pollRun('clockworks~free-tiktok-scraper', run.id);
-    const items = await fetchDatasetItems('clockworks~free-tiktok-scraper', run.id);
+    await pollRun(run.id);
+    const items = await fetchDatasetItems(run.defaultDatasetId);
     if (!items.length) throw new Error('TikTok scraper returned no results');
     const v = items[0];
     return {
@@ -75,8 +75,8 @@ async function scrapeVideo(url) {
       directUrls: [url],
       resultsLimit: 1,
     });
-    await pollRun('apify~instagram-reel-scraper', run.id);
-    const items = await fetchDatasetItems('apify~instagram-reel-scraper', run.id);
+    await pollRun(run.id);
+    const items = await fetchDatasetItems(run.defaultDatasetId);
     if (!items.length) throw new Error('Instagram scraper returned no results');
     const v = items[0];
     return {
