@@ -1,5 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
-import fetch from 'node-fetch';
+const { default: Anthropic } = require('@anthropic-ai/sdk');
 
 const APIFY_BASE = 'https://api.apify.com/v2';
 
@@ -66,9 +65,9 @@ async function scrapeVideo(url) {
       likes: v.diggCount ?? v.stats?.diggCount ?? 0,
       comments: v.commentCount ?? v.stats?.commentCount ?? 0,
       shares: v.shareCount ?? v.stats?.shareCount ?? 0,
-      hashtags: v.hashtags?.map(h => h.name || h) ?? [],
-      author: v.authorMeta?.name ?? v.author?.uniqueId ?? '',
-      duration: `${v.videoMeta?.duration ?? v.duration ?? 0}s`,
+      hashtags: (v.hashtags || []).map(h => h.name || h),
+      author: (v.authorMeta && v.authorMeta.name) || (v.author && v.author.uniqueId) || '',
+      duration: `${(v.videoMeta && v.videoMeta.duration) || v.duration || 0}s`,
       topComments: [],
     };
   } else {
@@ -83,14 +82,14 @@ async function scrapeVideo(url) {
     return {
       platform,
       url,
-      caption: v.caption ?? v.alt ?? '',
-      views: v.videoPlayCount ?? v.playsCount ?? 0,
-      likes: v.likesCount ?? v.likes ?? 0,
-      comments: v.commentsCount ?? v.comments ?? 0,
+      caption: v.caption || v.alt || '',
+      views: v.videoPlayCount || v.playsCount || 0,
+      likes: v.likesCount || v.likes || 0,
+      comments: v.commentsCount || v.comments || 0,
       shares: 0,
-      hashtags: v.hashtags ?? [],
-      author: v.ownerUsername ?? v.owner?.username ?? '',
-      duration: `${v.videoDuration ?? 0}s`,
+      hashtags: v.hashtags || [],
+      author: (v.ownerUsername) || (v.owner && v.owner.username) || '',
+      duration: `${v.videoDuration || 0}s`,
       topComments: [],
     };
   }
@@ -165,7 +164,7 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 };
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: corsHeaders, body: '' };
   }
@@ -181,7 +180,7 @@ export const handler = async (event) => {
   let url;
   try {
     ({ url } = JSON.parse(event.body));
-  } catch {
+  } catch (e) {
     return {
       statusCode: 400,
       headers: corsHeaders,
