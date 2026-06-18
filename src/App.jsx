@@ -64,17 +64,39 @@ export default function App() {
     setPhase("scraping");
 
     try {
-      const res = await fetch("/api/analyse", {
+      // Step 1: start the Apify run
+      const startRes = await fetch("/api/analyse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
-      setPhase("analysing");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Request failed");
-      setVideoData(data.videoData);
-      setAnalysis(data.analysis);
-      setPhase("done");
+      const startData = await startRes.json();
+      if (!startRes.ok) throw new Error(startData.error || "Failed to start analysis");
+
+      const { runId, datasetId, platform: detectedPlatform, url: cleanUrl } = startData;
+
+      // Step 2: poll until Apify finishes and Claude returns the analysis
+      let attempts = 0;
+      while (attempts < 40) {
+        await new Promise(r => setTimeout(r, 5000));
+        const resultRes = await fetch("/api/result", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ runId, datasetId, platform: detectedPlatform, url: cleanUrl }),
+        });
+        const resultData = await resultRes.json();
+        if (!resultRes.ok) throw new Error(resultData.error || "Analysis failed");
+        if (!resultData.pending) {
+          setPhase("analysing");
+          await new Promise(r => setTimeout(r, 600));
+          setVideoData(resultData.videoData);
+          setAnalysis(resultData.analysis);
+          setPhase("done");
+          break;
+        }
+        attempts++;
+      }
+      if (attempts >= 40) throw new Error("Timed out — scraper took too long");
     } catch (err) {
       setError(err.message);
       setPhase("idle");

@@ -1,5 +1,3 @@
-const { default: Anthropic } = require('@anthropic-ai/sdk');
-
 const APIFY_BASE = 'https://api.apify.com/v2';
 
 function detectPlatform(url) {
@@ -20,143 +18,6 @@ async function startApifyRun(actorId, input) {
   return data;
 }
 
-async function pollRun(runId) {
-  const token = process.env.APIFY_API_KEY;
-  for (let i = 0; i < 40; i++) {
-    await new Promise(r => setTimeout(r, 4000));
-    const res = await fetch(`${APIFY_BASE}/actor-runs/${runId}?token=${token}`);
-    const { data } = await res.json();
-    if (data.status === 'SUCCEEDED') return;
-    if (data.status === 'FAILED' || data.status === 'ABORTED') {
-      throw new Error(`Apify run ${data.status}`);
-    }
-  }
-  throw new Error('Apify run timed out after 160 seconds');
-}
-
-async function fetchDatasetItems(datasetId) {
-  const token = process.env.APIFY_API_KEY;
-  const res = await fetch(
-    `${APIFY_BASE}/datasets/${datasetId}/items?token=${token}`
-  );
-  if (!res.ok) throw new Error(`Apify dataset fetch failed (${res.status})`);
-  return res.json();
-}
-
-async function scrapeVideo(url) {
-  const platform = detectPlatform(url);
-
-  if (platform === 'tiktok') {
-    const run = await startApifyRun('clockworks~free-tiktok-scraper', {
-      postURLs: [url],
-      maxPostsPerPage: 1,
-      shouldDownloadVideos: false,
-      shouldDownloadCovers: false,
-    });
-    await pollRun(run.id);
-    const items = await fetchDatasetItems(run.defaultDatasetId);
-    if (!items.length) throw new Error('TikTok scraper returned no results');
-    const v = items[0];
-    return {
-      platform,
-      url,
-      caption: v.text || v.desc || '',
-      views: v.playCount ?? v.stats?.playCount ?? 0,
-      likes: v.diggCount ?? v.stats?.diggCount ?? 0,
-      comments: v.commentCount ?? v.stats?.commentCount ?? 0,
-      shares: v.shareCount ?? v.stats?.shareCount ?? 0,
-      hashtags: (v.hashtags || []).map(h => h.name || h),
-      author: (v.authorMeta && v.authorMeta.name) || (v.author && v.author.uniqueId) || '',
-      duration: `${(v.videoMeta && v.videoMeta.duration) || v.duration || 0}s`,
-      topComments: [],
-    };
-  } else {
-    const run = await startApifyRun('apify~instagram-reel-scraper', {
-      directUrls: [url],
-      resultsLimit: 1,
-    });
-    await pollRun(run.id);
-    const items = await fetchDatasetItems(run.defaultDatasetId);
-    if (!items.length) throw new Error('Instagram scraper returned no results');
-    const v = items[0];
-    return {
-      platform,
-      url,
-      caption: v.caption || v.alt || '',
-      views: v.videoPlayCount || v.playsCount || 0,
-      likes: v.likesCount || v.likes || 0,
-      comments: v.commentsCount || v.comments || 0,
-      shares: 0,
-      hashtags: v.hashtags || [],
-      author: (v.ownerUsername) || (v.owner && v.owner.username) || '',
-      duration: `${v.videoDuration || 0}s`,
-      topComments: [],
-    };
-  }
-}
-
-async function analyseWithClaude(videoData) {
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-  const prompt = `You are a viral content strategist for Allianz Housing Limited — a UK supported/transitional accommodation provider. Target audience: Universal Credit (UC) and DSS claimants seeking housing across the UK. Content posted to @allianzhousinguk on TikTok and Instagram. Filming in Coventry properties.
-
-Analyse this viral housing video data and return a JSON object — no markdown, no code fences, just raw JSON.
-
-VIDEO DATA:
-${JSON.stringify(videoData, null, 2)}
-
-Return ONLY this JSON structure (fill in all fields):
-{
-  "viralScore": <number 1-10>,
-  "hookScore": <number 1-10>,
-  "retentionScore": <number 1-10>,
-  "emotionScore": <number 1-10>,
-  "ctaScore": <number 1-10>,
-  "emotionTriggered": "<single emotion e.g. Hope, Relief, FOMO, Curiosity, Shock>",
-  "audienceInsight": "<2-3 sentences on who resonated and why — UC/DSS claimants focus>",
-  "whyItWorked": ["<reason 1>", "<reason 2>", "<reason 3>"],
-  "hookFormula": "<the repeatable hook pattern from this video>",
-  "scripts": [
-    {
-      "title": "<script title>",
-      "hook": "<opening 3 seconds — stops the scroll>",
-      "body": "<30-60 second script. Presenter on camera in Coventry property. Casual, direct, NOT corporate. Mention UC/DSS eligibility, no deposit, bills included where relevant.>",
-      "cta": "Apply now at referrals@allianzhousing.org",
-      "why": "<one sentence on why this angle works for Allianz>"
-    },
-    {
-      "title": "<script title>",
-      "hook": "<opening 3 seconds>",
-      "body": "<30-60 second script>",
-      "cta": "Apply now at referrals@allianzhousing.org",
-      "why": "<one sentence>"
-    },
-    {
-      "title": "<script title>",
-      "hook": "<opening 3 seconds>",
-      "body": "<30-60 second script>",
-      "cta": "Apply now at referrals@allianzhousing.org",
-      "why": "<one sentence>"
-    }
-  ],
-  "topHooks": ["<hook 1>", "<hook 2>", "<hook 3>", "<hook 4>", "<hook 5>"],
-  "hashtagStrategy": ["allianzhousing", "allianzhousinguk", "<tag3>", "<tag4>", "<tag5>", "<tag6>", "<tag7>", "<tag8>", "<tag9>", "<tag10>"],
-  "warningSignals": ["<warning 1 if any>"]
-}`;
-
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 4096,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const text = response.content[0].text.trim();
-  const jsonStart = text.indexOf('{');
-  const jsonEnd = text.lastIndexOf('}');
-  if (jsonStart === -1 || jsonEnd === -1) throw new Error('Claude returned invalid JSON');
-  return JSON.parse(text.slice(jsonStart, jsonEnd + 1));
-}
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
@@ -165,50 +26,41 @@ const corsHeaders = {
 };
 
 exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: corsHeaders, body: '' };
-  }
-
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: corsHeaders, body: '' };
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    };
+    return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
   let url;
-  try {
-    ({ url } = JSON.parse(event.body));
-  } catch (e) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Invalid JSON body' }),
-    };
+  try { ({ url } = JSON.parse(event.body)); } catch (e) {
+    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid JSON body' }) };
   }
-
   if (!url || typeof url !== 'string') {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Missing url field' }),
-    };
+    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Missing url field' }) };
   }
 
   try {
-    const videoData = await scrapeVideo(url.trim());
-    const analysis = await analyseWithClaude(videoData);
+    const platform = detectPlatform(url.trim());
+    let run;
+    if (platform === 'tiktok') {
+      run = await startApifyRun('clockworks~free-tiktok-scraper', {
+        postURLs: [url.trim()],
+        maxPostsPerPage: 1,
+        shouldDownloadVideos: false,
+        shouldDownloadCovers: false,
+      });
+    } else {
+      run = await startApifyRun('apify~instagram-reel-scraper', {
+        directUrls: [url.trim()],
+        resultsLimit: 1,
+      });
+    }
     return {
       statusCode: 200,
       headers: corsHeaders,
-      body: JSON.stringify({ videoData, analysis }),
+      body: JSON.stringify({ runId: run.id, datasetId: run.defaultDatasetId, platform, url: url.trim() }),
     };
   } catch (err) {
-    return {
-      statusCode: 500,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: err.message }),
-    };
+    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: err.message }) };
   }
 };
