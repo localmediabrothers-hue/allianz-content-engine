@@ -1,286 +1,456 @@
 import { useState, useEffect } from "react";
 
-const GOLD   = "#FFB800";
-const CYAN   = "#00C8FF";
-const GREEN  = "#00FF88";
-const CORAL  = "#FF4466";
-const PURPLE = "#AA44FF";
-const BG     = "#0a0a08";
-const BG2    = "#111109";
-const BG3    = "#161614";
-const BORDER = "#1e1e1c";
+const G = {
+  gold:"#FFB800", cyan:"#00C8FF", green:"#00FF88", coral:"#FF4466", purple:"#AA44FF",
+  bg:"#0d0d0b", card:"#161614", card2:"#1e1e1c", border:"#252523",
+  muted:"#4a4a48", text:"#f0f0ee", dim:"#2a2a28",
+};
 
-const TABS = [
-  { id: "analyse",      label: "Analyse",      color: CYAN   },
-  { id: "channel",      label: "My Channel",   color: GREEN  },
-  { id: "intelligence", label: "Intelligence", color: GOLD   },
-  { id: "competitors",  label: "Competitors",  color: CORAL  },
-  { id: "vault",        label: "Script Vault", color: PURPLE },
-];
-
-function ReconexusLogo({ size = 30 }) {
+/* ─── Brain logo ─────────────────────────────────────────────────────────── */
+function Brain({ s = 26 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M16 4C10.5 4 6.5 8.2 6.5 13.2c0 2.2.8 4.2 2.2 5.8V22.5h14.6V19c1.4-1.6 2.2-3.6 2.2-5.8C25.5 8.2 21.5 4 16 4z" stroke={GOLD} strokeWidth="1.2" fill="none"/>
-      <path d="M9 22.5h14v1.8H9z" fill={GOLD} opacity="0.15"/>
-      <polygon points="16,5.5 17.2,7.8 16,10.1 14.8,7.8" fill={GOLD} opacity="0.95"/>
-      <polygon points="7.5,13 9,14.8 7.5,16.6 6,14.8" fill={GOLD} opacity="0.7"/>
-      <polygon points="24.5,13 26,14.8 24.5,16.6 23,14.8" fill={GOLD} opacity="0.7"/>
-      <polygon points="11.5,18.5 12.8,20 11.5,21.5 10.2,20" fill={GOLD} opacity="0.6"/>
-      <polygon points="20.5,18.5 21.8,20 20.5,21.5 19.2,20" fill={GOLD} opacity="0.6"/>
-      <polygon points="16,13.5 17,15 16,16.5 15,15" fill="#fff" opacity="0.9"/>
-      <line x1="16" y1="10.1" x2="16" y2="13.5" stroke={GOLD} strokeWidth="0.7" opacity="0.45"/>
-      <line x1="9" y1="14.8" x2="15" y2="15" stroke={GOLD} strokeWidth="0.7" opacity="0.35"/>
-      <line x1="23" y1="14.8" x2="17" y2="15" stroke={GOLD} strokeWidth="0.7" opacity="0.35"/>
-      <line x1="12.8" y1="20" x2="15" y2="15" stroke={GOLD} strokeWidth="0.7" opacity="0.35"/>
-      <line x1="19.2" y1="20" x2="17" y2="15" stroke={GOLD} strokeWidth="0.7" opacity="0.35"/>
-      <line x1="14.8" y1="7.8" x2="9" y2="14.8" stroke={GOLD} strokeWidth="0.5" opacity="0.2"/>
-      <line x1="17.2" y1="7.8" x2="23" y2="14.8" stroke={GOLD} strokeWidth="0.5" opacity="0.2"/>
+    <svg width={s} height={s} viewBox="0 0 32 32" fill="none">
+      <path d="M16 4C10.5 4 6.5 8.2 6.5 13.2c0 2.2.8 4.2 2.2 5.8V23h14.6v-4c1.4-1.6 2.2-3.6 2.2-5.8C25.5 8.2 21.5 4 16 4z" stroke={G.gold} strokeWidth="1.2"/>
+      <polygon points="16,5.5 17.2,7.8 16,10.1 14.8,7.8" fill={G.gold}/>
+      <polygon points="7.5,13 9,14.8 7.5,16.6 6,14.8" fill={G.gold} opacity=".7"/>
+      <polygon points="24.5,13 26,14.8 24.5,16.6 23,14.8" fill={G.gold} opacity=".7"/>
+      <polygon points="11.5,18.5 12.8,20 11.5,21.5 10.2,20" fill={G.gold} opacity=".55"/>
+      <polygon points="20.5,18.5 21.8,20 20.5,21.5 19.2,20" fill={G.gold} opacity=".55"/>
+      <polygon points="16,13.5 17,15 16,16.5 15,15" fill="#fff" opacity=".9"/>
+      <line x1="16" y1="10.1" x2="16" y2="13.5" stroke={G.gold} strokeWidth=".7" opacity=".5"/>
+      <line x1="9" y1="14.8" x2="15" y2="15" stroke={G.gold} strokeWidth=".7" opacity=".4"/>
+      <line x1="23" y1="14.8" x2="17" y2="15" stroke={G.gold} strokeWidth=".7" opacity=".4"/>
+      <line x1="12.8" y1="20" x2="15" y2="15" stroke={G.gold} strokeWidth=".7" opacity=".4"/>
+      <line x1="19.2" y1="20" x2="17" y2="15" stroke={G.gold} strokeWidth=".7" opacity=".4"/>
     </svg>
   );
 }
 
-function Mono({ children, size = 13, color = "#fff", style = {} }) {
+/* ─── Nav icons (Feather paths) ─────────────────────────────────────────── */
+const PATHS = {
+  home:    ["M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z","M9 22V12h6v10"],
+  analyse: ["M13 2L3 14h9l-1 8L21 10h-9l1-8z"],
+  channel: ["M18 20V10","M12 20V4","M6 20v-6"],
+  intel:   ["M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"],
+  comp:    ["M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2","M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8","M23 21v-2a4 4 0 0 0-3-3.87","M16 3.13a4 4 0 0 1 0 7.75"],
+  vault:   ["M12 2L2 7l10 5 10-5-10-5","M2 17l10 5 10-5","M2 12l10 5 10-5"],
+};
+function NIcon({ n, sz = 17, col }) {
   return (
-    <span style={{ fontFamily: "'Courier New', Courier, monospace", fontSize: size, color, ...style }}>
-      {children}
-    </span>
+    <svg width={sz} height={sz} viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      {(PATHS[n] || PATHS.home).map((d, i) => <path key={i} d={d}/>)}
+    </svg>
   );
 }
 
-function Eyebrow({ label, color }) {
-  return (
-    <div style={{ fontFamily: "'Courier New', Courier, monospace", fontSize: 10, color: color + "99", textTransform: "uppercase", letterSpacing: "2px", marginBottom: 14 }}>
-      // reconexus — {label}
-    </div>
-  );
-}
+/* ─── Sidebar ────────────────────────────────────────────────────────────── */
+const NAV = [
+  { id:"home",    label:"Dashboard",    n:"home",    c:G.gold   },
+  { id:"analyse", label:"Analyse",      n:"analyse", c:G.cyan   },
+  { id:"channel", label:"My Channel",   n:"channel", c:G.green  },
+  { id:"intel",   label:"Intelligence", n:"intel",   c:G.gold   },
+  { id:"comp",    label:"Competitors",  n:"comp",    c:G.coral  },
+  { id:"vault",   label:"Script Vault", n:"vault",   c:G.purple },
+];
 
-function Card({ children, accent, style = {} }) {
+function Sidebar({ cur, go }) {
   return (
-    <div style={{
-      background: BG2, border: `1px solid ${BORDER}`,
-      borderLeft: `3px solid ${accent}`,
-      borderRadius: "0 10px 10px 0",
-      padding: "18px 20px", marginBottom: 12, ...style,
-    }}>
-      {children}
-    </div>
-  );
-}
-
-function StatTile({ label, value, color }) {
-  return (
-    <div style={{
-      background: BG3, border: `1px solid ${BORDER}`,
-      borderTop: `2px solid ${color}`,
-      borderRadius: "0 0 8px 8px",
-      padding: "16px 12px", flex: 1, minWidth: 80, textAlign: "center",
-    }}>
-      <div style={{ fontFamily: "'Courier New', Courier, monospace", fontSize: 22, fontWeight: 900, color, letterSpacing: "-1px" }}>
-        {typeof value === "number" ? value.toLocaleString() : value}
+    <div style={{width:240,minHeight:"100vh",background:"#0f0f0d",borderRight:`1px solid ${G.border}`,display:"flex",flexDirection:"column",position:"fixed",left:0,top:0,zIndex:300}}>
+      <div style={{padding:"22px 20px 18px",borderBottom:`1px solid ${G.border}`,display:"flex",alignItems:"center",gap:11}}>
+        <Brain s={28}/>
+        <div>
+          <div style={{fontSize:13,fontWeight:900,letterSpacing:"2.5px",color:G.gold}}>RECONEXUS</div>
+          <div style={{fontSize:9,color:G.muted,letterSpacing:"1.5px",textTransform:"uppercase",marginTop:2}}>Content Engine</div>
+        </div>
       </div>
-      <div style={{ color: "#444", fontSize: 10, textTransform: "uppercase", letterSpacing: "1.5px", marginTop: 4 }}>{label}</div>
-    </div>
-  );
-}
-
-function ScoreBar({ label, score, color }) {
-  return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-        <span style={{ color: "#777", fontSize: 12 }}>{label}</span>
-        <Mono size={12} color={color}>{score}/10</Mono>
-      </div>
-      <div style={{ background: "#1a1a18", borderRadius: 3, height: 4, overflow: "hidden" }}>
-        <div style={{ width: `${score * 10}%`, height: "100%", background: `linear-gradient(90deg, ${color}50, ${color})`, borderRadius: 3 }} />
+      <nav style={{flex:1,padding:"14px 10px"}}>
+        {NAV.map(item => {
+          const on = cur === item.id;
+          return (
+            <button key={item.id} onClick={() => go(item.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:11,background:on?`${item.c}14`:"transparent",border:"none",borderLeft:`2px solid ${on?item.c:"transparent"}`,borderRadius:"0 10px 10px 0",padding:"10px 14px",cursor:"pointer",marginBottom:3,fontFamily:"inherit",transition:"all .15s"}}>
+              <NIcon n={item.n} sz={16} col={on?item.c:G.muted}/>
+              <span style={{fontSize:13,fontWeight:on?700:400,color:on?item.c:G.muted}}>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+      <div style={{padding:"14px 20px",borderTop:`1px solid ${G.border}`}}>
+        <div style={{fontSize:9,color:G.dim,letterSpacing:"1.5px",textTransform:"uppercase"}}>Built by Local Media Brothers</div>
       </div>
     </div>
   );
 }
 
-const PHASES    = [{ key: "scraping", label: "Scraping video" }, { key: "analysing", label: "Running AI" }, { key: "done", label: "Complete" }];
-const PHASE_ORD = ["scraping", "analysing", "done"];
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+function Header({ title, sub }) {
+  return (
+    <div style={{padding:"22px 32px 0",display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
+      <div>
+        <div style={{fontSize:22,fontWeight:800,color:G.text,letterSpacing:"-0.5px"}}>{title}</div>
+        {sub && <div style={{fontSize:13,color:G.muted,marginTop:3}}>{sub}</div>}
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:8,background:G.card,border:`1px solid ${G.border}`,borderRadius:20,padding:"7px 14px"}}>
+        <div style={{width:8,height:8,borderRadius:"50%",background:G.green,animation:"pulse 2s infinite"}}/>
+        <span style={{fontSize:11,color:G.muted,fontFamily:"'Courier New',monospace"}}>LIVE</span>
+      </div>
+    </div>
+  );
+}
 
-function AnalyseTab() {
-  const [url, setUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [phase, setPhase] = useState("idle");
-  const [videoData, setVideoData] = useState(null);
-  const [analysis, setAnalysis] = useState(null);
-  const [error, setError] = useState("");
+/* ─── Stat card ──────────────────────────────────────────────────────────── */
+function Stat({ label, val, sub, color, badge }) {
+  return (
+    <div style={{flex:1,minWidth:140,background:G.card,border:`1px solid ${G.border}`,borderRadius:16,padding:"20px 22px",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:color,borderRadius:"16px 16px 0 0",opacity:.7}}/>
+      <div style={{fontSize:11,color:G.muted,textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:14}}>{label}</div>
+      <div style={{fontFamily:"'Courier New',Courier,monospace",fontSize:36,fontWeight:900,color:G.text,lineHeight:1,marginBottom:10}}>{val}</div>
+      {badge && <div style={{display:"inline-flex",alignItems:"center",gap:4,background:`${color}18`,border:`1px solid ${color}30`,borderRadius:20,padding:"3px 10px"}}>
+        <span style={{color,fontSize:11,fontWeight:700}}>{badge}</span>
+      </div>}
+      {sub && !badge && <div style={{color:G.muted,fontSize:11}}>{sub}</div>}
+    </div>
+  );
+}
 
-  async function analyse() {
-    if (!url.trim()) { setError("Paste a TikTok or Instagram URL first."); return; }
-    if (!url.includes("tiktok.com") && !url.includes("instagram.com")) {
-      setError("Only TikTok and Instagram URLs are supported."); return;
-    }
-    setError(""); setLoading(true); setVideoData(null); setAnalysis(null); setPhase("scraping");
+/* ─── Card wrapper ───────────────────────────────────────────────────────── */
+function Card({ children, style = {} }) {
+  return <div style={{background:G.card,border:`1px solid ${G.border}`,borderRadius:16,padding:"20px 22px",...style}}>{children}</div>;
+}
+function CLabel({ children, color }) {
+  return <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"1.5px",color:color||G.muted,marginBottom:14}}>{children}</div>;
+}
+
+/* ─── Line chart (SVG) ───────────────────────────────────────────────────── */
+function LineChart({ data, color = G.gold, h = 110 }) {
+  const max = Math.max(...data, 1);
+  const pts = data.map((v, i) => ({ x:(i / Math.max(data.length-1,1))*100, y:88-(v/max)*76 }));
+  let line = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i=1;i<pts.length;i++) {
+    const p=pts[i], q=pts[i-1], mx=(q.x+p.x)/2;
+    line += ` C ${mx} ${q.y} ${mx} ${p.y} ${p.x} ${p.y}`;
+  }
+  const area = `${line} L ${pts[pts.length-1].x} 100 L 0 100 Z`;
+  return (
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{width:"100%",height:h}}>
+      <defs>
+        <linearGradient id={`lg${color.slice(1)}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity=".28"/>
+          <stop offset="100%" stopColor={color} stopOpacity=".02"/>
+        </linearGradient>
+      </defs>
+      {[20,40,60,80].map(y => <line key={y} x1="0" y1={y} x2="100" y2={y} stroke={G.border} strokeWidth=".4"/>)}
+      <path d={area} fill={`url(#lg${color.slice(1)})`}/>
+      <path d={line} fill="none" stroke={color} strokeWidth=".9"/>
+      {pts.map((p,i) => <circle key={i} cx={p.x} cy={p.y} r="1.8" fill={color} opacity=".8"/>)}
+    </svg>
+  );
+}
+
+/* ─── Donut chart (SVG) ──────────────────────────────────────────────────── */
+function Donut({ segs, size = 140, val, lbl }) {
+  const r = 40, circ = 2*Math.PI*r;
+  const tot = segs.reduce((s,x)=>s+x.v,0)||1;
+  let off = circ * 0.25;
+  return (
+    <div style={{position:"relative",width:size,height:size,margin:"0 auto"}}>
+      <svg width={size} height={size} viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r={r} fill="none" stroke={G.card2} strokeWidth="13"/>
+        {segs.map((sg,i) => {
+          const len=(sg.v/tot)*circ;
+          const el=<circle key={i} cx="50" cy="50" r={r} fill="none" stroke={sg.c} strokeWidth="13" strokeDasharray={`${len} ${circ-len}`} strokeDashoffset={-off+circ*0.25} strokeLinecap="butt"/>;
+          off+=len; return el;
+        })}
+      </svg>
+      <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+        <div style={{fontFamily:"'Courier New',monospace",fontSize:22,fontWeight:900,color:G.text}}>{val}</div>
+        <div style={{fontSize:9,color:G.muted,textTransform:"uppercase",letterSpacing:1,marginTop:2}}>{lbl}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Score bar ──────────────────────────────────────────────────────────── */
+function Bar({ label, score, color }) {
+  return (
+    <div style={{marginBottom:10}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+        <span style={{color:G.muted,fontSize:12}}>{label}</span>
+        <span style={{color,fontSize:12,fontWeight:700,fontFamily:"'Courier New',monospace"}}>{score}/10</span>
+      </div>
+      <div style={{background:G.card2,borderRadius:4,height:5,overflow:"hidden"}}>
+        <div style={{width:`${score*10}%`,height:"100%",background:color,borderRadius:4,opacity:.85}}/>
+      </div>
+    </div>
+  );
+}
+
+/* ─── DASHBOARD HOME ─────────────────────────────────────────────────────── */
+const WDAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+function Home() {
+  const [rows, setRows] = useState([]);
+  const [busy, setBusy] = useState(true);
+  useEffect(() => {
+    fetch("/api/get-analyses?limit=20").then(r=>r.json())
+      .then(d=>{setRows(d.analyses||[]);setBusy(false);}).catch(()=>setBusy(false));
+  },[]);
+
+  const scripts = rows.reduce((s,a)=>s+(a.analysis?.scripts?.length||0),0);
+  const avg = rows.length ? +(rows.reduce((s,a)=>s+(a.analysis?.viralScore||0),0)/rows.length).toFixed(1) : 0;
+  const tik = rows.filter(a=>a.platform==="tiktok").length;
+  const ins = rows.filter(a=>a.platform==="instagram").length;
+
+  const chart = WDAYS.map(()=>0);
+  rows.slice(0,14).forEach(a=>{ const d=new Date(a.created_at).getDay(); chart[d===0?6:d-1]++; });
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:14,marginBottom:20,flexWrap:"wrap"}}>
+        <Stat label="Total Analyses"    val={rows.length}  color={G.cyan}   badge={rows.length?`${rows.length} videos`:"Start analysing"}/>
+        <Stat label="Scripts Generated" val={scripts}      color={G.purple} badge={scripts?`${scripts} ready`:"No scripts yet"}/>
+        <Stat label="Avg Viral Score"   val={avg||"—"}     color={G.gold}   sub="out of 10"/>
+        <Stat label="TikTok / Instagram" val={`${tik} / ${ins}`} color={G.coral} sub="platform split"/>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 260px",gap:14,marginBottom:20}}>
+        <Card>
+          <CLabel color={G.cyan}>Analysis Activity — This Week</CLabel>
+          <LineChart data={chart} color={G.gold} h={120}/>
+          <div style={{display:"flex",justifyContent:"space-between",marginTop:8,paddingTop:8,borderTop:`1px solid ${G.border}`}}>
+            {WDAYS.map(d=><span key={d} style={{fontSize:10,color:G.muted}}>{d}</span>)}
+          </div>
+        </Card>
+        <Card>
+          <CLabel>Platform Split</CLabel>
+          <Donut segs={[{v:tik||1,c:G.cyan},{v:ins||1,c:G.purple}]} val={rows.length} lbl="total" size={130}/>
+          <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
+            {[{l:"TikTok",v:tik,c:G.cyan},{l:"Instagram",v:ins,c:G.purple}].map(p=>(
+              <div key={p.l} style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{width:9,height:9,borderRadius:"50%",background:p.c}}/>
+                <span style={{color:G.muted,fontSize:12,flex:1}}>{p.l}</span>
+                <span style={{color:G.text,fontSize:14,fontWeight:700,fontFamily:"'Courier New',monospace"}}>{p.v}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <Card>
+        <CLabel>Recent Analyses</CLabel>
+        {busy && <div style={{color:G.muted,fontSize:13,padding:"20px 0"}}>Loading...</div>}
+        {!busy && rows.length===0 && (
+          <div style={{color:G.dim,fontSize:13,textAlign:"center",padding:"32px 0",fontFamily:"'Courier New',monospace"}}>
+            No analyses yet — go to Analyse tab and paste a URL
+          </div>
+        )}
+        {rows.length>0 && (
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead>
+              <tr>{["Platform","URL","Viral Score","Scripts","Date"].map(h=>(
+                <th key={h} style={{textAlign:"left",fontSize:10,color:G.muted,textTransform:"uppercase",letterSpacing:"1px",padding:"0 16px 10px 0",borderBottom:`1px solid ${G.border}`,fontWeight:600}}>{h}</th>
+              ))}</tr>
+            </thead>
+            <tbody>
+              {rows.map((a,i)=>(
+                <tr key={a.id} style={{borderBottom:i<rows.length-1?`1px solid ${G.border}`:"none"}}>
+                  <td style={{padding:"13px 16px 13px 0"}}>
+                    <span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:6,background:a.platform==="tiktok"?`${G.cyan}18`:`${G.purple}18`,border:`1px solid ${a.platform==="tiktok"?G.cyan:G.purple}30`,color:a.platform==="tiktok"?G.cyan:G.purple,textTransform:"capitalize"}}>{a.platform}</span>
+                  </td>
+                  <td style={{padding:"13px 16px 13px 0",color:G.muted,fontSize:12,maxWidth:220}}>
+                    <div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.url}</div>
+                  </td>
+                  <td style={{padding:"13px 16px 13px 0"}}>
+                    <span style={{fontFamily:"'Courier New',monospace",fontSize:16,fontWeight:900,color:G.gold}}>{a.analysis?.viralScore||"—"}</span>
+                    <span style={{color:G.muted,fontSize:11}}> /10</span>
+                  </td>
+                  <td style={{padding:"13px 16px 13px 0",fontFamily:"'Courier New',monospace",fontSize:15,fontWeight:700,color:G.purple}}>{a.analysis?.scripts?.length||0}</td>
+                  <td style={{padding:"13px 0",color:G.muted,fontSize:11}}>{new Date(a.created_at).toLocaleDateString("en-GB")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+/* ─── ANALYSE ────────────────────────────────────────────────────────────── */
+const PH = [{key:"scraping",label:"Scraping video"},{key:"analysing",label:"Running AI"},{key:"done",label:"Complete"}];
+const PO = ["scraping","analysing","done"];
+
+function Analyse() {
+  const [url,setUrl]=useState("");
+  const [busy,setBusy]=useState(false);
+  const [phase,setPhase]=useState("idle");
+  const [vd,setVd]=useState(null);
+  const [an,setAn]=useState(null);
+  const [err,setErr]=useState("");
+
+  async function run() {
+    if (!url.trim()) { setErr("Paste a TikTok or Instagram URL first."); return; }
+    if (!url.includes("tiktok.com")&&!url.includes("instagram.com")) { setErr("Only TikTok and Instagram URLs are supported."); return; }
+    setErr(""); setBusy(true); setVd(null); setAn(null); setPhase("scraping");
     try {
-      const startRes  = await fetch("/api/analyse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) });
-      const startData = await startRes.json();
-      if (!startRes.ok) throw new Error(startData.error || "Failed to start analysis");
-      const { runId, datasetId, platform: plat, url: cleanUrl } = startData;
-      let attempts = 0;
-      while (attempts < 40) {
-        await new Promise(r => setTimeout(r, 5000));
-        const res  = await fetch("/api/result", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ runId, datasetId, platform: plat, url: cleanUrl }) });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Analysis failed");
-        if (!data.pending) {
-          setPhase("analysing"); await new Promise(r => setTimeout(r, 600));
-          setVideoData(data.videoData); setAnalysis(data.analysis); setPhase("done"); break;
-        }
-        attempts++;
+      const s = await fetch("/api/analyse",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
+      const sd = await s.json();
+      if (!s.ok) throw new Error(sd.error||"Failed to start");
+      const {runId,datasetId,platform:plat,url:cu} = sd;
+      let att=0;
+      while (att<40) {
+        await new Promise(r=>setTimeout(r,5000));
+        const r = await fetch("/api/result",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({runId,datasetId,platform:plat,url:cu})});
+        const rd = await r.json();
+        if (!r.ok) throw new Error(rd.error||"Analysis failed");
+        if (!rd.pending) { setPhase("analysing"); await new Promise(r=>setTimeout(r,500)); setVd(rd.videoData); setAn(rd.analysis); setPhase("done"); break; }
+        att++;
       }
-      if (attempts >= 40) throw new Error("Timed out — scraper took too long");
-    } catch (err) { setError(err.message); setPhase("idle"); }
-    setLoading(false);
+      if (att>=40) throw new Error("Timed out — scraper took too long");
+    } catch(e) { setErr(e.message); setPhase("idle"); }
+    setBusy(false);
   }
 
   return (
     <div>
-      <Eyebrow label="analyse" color={CYAN} />
-
       {/* Input */}
-      <div style={{ background: BG2, border: `1px solid ${BORDER}`, borderTop: `2px solid ${CYAN}`, borderRadius: "0 0 12px 12px", padding: 20, marginBottom: 20 }}>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <input value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => e.key === "Enter" && analyse()}
-            placeholder="paste tiktok or instagram url..."
-            style={{ flex: 1, minWidth: 200, background: BG3, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "12px 16px", color: "#fff", fontSize: 14, outline: "none", fontFamily: "inherit" }}
-          />
-          <button onClick={analyse} disabled={loading}
-            style={{ background: loading ? BG3 : GOLD, border: "none", borderRadius: 8, padding: "12px 24px", color: loading ? "#444" : "#000", fontWeight: 800, fontSize: 14, cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
-          >{loading ? "Analysing..." : "Analyse →"}</button>
+      <Card style={{marginBottom:20,borderColor:busy?G.cyan:G.border}}>
+        <CLabel color={G.cyan}>Drop a Viral URL</CLabel>
+        <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+          <input value={url} onChange={e=>setUrl(e.target.value)} onKeyDown={e=>e.key==="Enter"&&run()}
+            placeholder="paste tiktok or instagram reel url..."
+            style={{flex:1,minWidth:200,background:G.card2,border:`1px solid ${G.border}`,borderRadius:10,padding:"13px 16px",color:G.text,fontSize:14,outline:"none",fontFamily:"inherit"}}/>
+          <button onClick={run} disabled={busy}
+            style={{background:busy?G.card2:G.gold,border:"none",borderRadius:10,padding:"13px 28px",color:busy?"#444":"#000",fontWeight:800,fontSize:14,cursor:busy?"not-allowed":"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+            {busy?"Analysing...":"Analyse →"}
+          </button>
         </div>
-        {error && <div style={{ color: CORAL, fontSize: 12, marginTop: 10, fontFamily: "'Courier New', monospace" }}>⚠ {error}</div>}
-        {loading && (
-          <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
-            {PHASES.map(p => {
-              const ci = PHASE_ORD.indexOf(phase), ti = PHASE_ORD.indexOf(p.key);
-              const isActive = p.key === phase, isDone = ti < ci;
+        {err && <div style={{color:G.coral,fontSize:12,marginTop:10,fontFamily:"'Courier New',monospace"}}>⚠ {err}</div>}
+        {busy && (
+          <div style={{display:"flex",gap:8,marginTop:16,flexWrap:"wrap"}}>
+            {PH.map(p=>{
+              const ci=PO.indexOf(phase),ti=PO.indexOf(p.key),on=p.key===phase,dn=ti<ci;
               return (
-                <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 20, background: isActive ? `${CYAN}12` : BG3, border: `1px solid ${isActive ? CYAN : BORDER}`, fontSize: 11, color: isActive ? CYAN : isDone ? "#333" : "#2a2a28", fontFamily: "'Courier New', monospace" }}>
-                  {isActive && <span style={{ width: 6, height: 6, borderRadius: "50%", background: CYAN, display: "inline-block", animation: "pulse 1s infinite" }} />}
-                  {isDone ? "✓ " : ""}{p.label}
+                <div key={p.key} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 13px",borderRadius:20,background:on?`${G.cyan}14`:G.card2,border:`1px solid ${on?G.cyan:G.border}`,fontSize:11,color:on?G.cyan:dn?"#2a2a28":G.dim,fontFamily:"'Courier New',monospace"}}>
+                  {on&&<span style={{width:6,height:6,borderRadius:"50%",background:G.cyan,display:"inline-block",animation:"pulse 1s infinite"}}/>}
+                  {dn?"✓ ":""}{p.label}
                 </div>
               );
             })}
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Metrics */}
-      {videoData && (
-        <div style={{ marginBottom: 20 }}>
-          <Mono size={10} color={CYAN} style={{ textTransform: "uppercase", letterSpacing: 2, display: "block", marginBottom: 8 }}>// {videoData.platform} — video metrics</Mono>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-            <StatTile label="Views"    value={videoData.views}    color={CYAN}   />
-            <StatTile label="Likes"    value={videoData.likes}    color={GOLD}   />
-            <StatTile label="Comments" value={videoData.comments} color={GREEN}  />
-            <StatTile label="Shares"   value={videoData.shares}   color={PURPLE} />
-            <StatTile label="Duration" value={videoData.duration} color={CORAL}  />
+      {vd && (
+        <>
+          <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:16}}>
+            {[{l:"Views",v:vd.views,c:G.cyan},{l:"Likes",v:vd.likes,c:G.gold},{l:"Comments",v:vd.comments,c:G.green},{l:"Shares",v:vd.shares,c:G.purple},{l:"Duration",v:vd.duration,c:G.coral}].map(x=>(
+              <div key={x.l} style={{flex:1,minWidth:90,background:G.card,border:`1px solid ${G.border}`,borderTop:`2px solid ${x.c}`,borderRadius:"0 0 12px 12px",padding:"16px 14px",textAlign:"center"}}>
+                <div style={{fontFamily:"'Courier New',monospace",fontSize:22,fontWeight:900,color:x.c}}>{typeof x.v==="number"?x.v.toLocaleString():x.v}</div>
+                <div style={{color:G.muted,fontSize:10,textTransform:"uppercase",letterSpacing:"1.5px",marginTop:5}}>{x.l}</div>
+              </div>
+            ))}
           </div>
-          <Card accent={CYAN}>
-            <div style={{ color: "#444", fontSize: 10, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Caption</div>
-            <div style={{ color: "#bbb", fontSize: 13, lineHeight: 1.6 }}>{videoData.caption}</div>
+          <Card style={{marginBottom:16}}>
+            <div style={{color:G.muted,fontSize:10,textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:6}}>Caption</div>
+            <div style={{color:"#ccc",fontSize:13,lineHeight:1.7}}>{vd.caption}</div>
           </Card>
-        </div>
+        </>
       )}
 
-      {/* Scores */}
-      {analysis && (
+      {/* Analysis */}
+      {an && (
         <>
-          <Card accent={GOLD} style={{ marginBottom: 16 }}>
-            <Mono size={10} color={GOLD} style={{ textTransform: "uppercase", letterSpacing: 2, display: "block", marginBottom: 14 }}>// viral performance scores</Mono>
-            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 18 }}>
-              <div style={{ background: `${GOLD}12`, border: `1px solid ${GOLD}35`, borderRadius: 10, padding: "18px 22px", textAlign: "center", minWidth: 110 }}>
-                <div style={{ fontFamily: "'Courier New', Courier, monospace", fontSize: 46, fontWeight: 900, color: GOLD, lineHeight: 1 }}>{analysis.viralScore}</div>
-                <div style={{ color: "#555", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginTop: 6 }}>Viral Score</div>
+          {/* Scores */}
+          <Card style={{marginBottom:16}}>
+            <CLabel color={G.gold}>Viral Performance Scores</CLabel>
+            <div style={{display:"flex",gap:14,flexWrap:"wrap",marginBottom:18}}>
+              <div style={{background:`${G.gold}14`,border:`1px solid ${G.gold}35`,borderRadius:14,padding:"20px 24px",textAlign:"center",minWidth:110}}>
+                <div style={{fontFamily:"'Courier New',monospace",fontSize:48,fontWeight:900,color:G.gold,lineHeight:1}}>{an.viralScore}</div>
+                <div style={{color:G.muted,fontSize:10,textTransform:"uppercase",letterSpacing:1,marginTop:6}}>Viral Score</div>
               </div>
-              <div style={{ flex: 1, minWidth: 180, paddingTop: 4 }}>
-                <ScoreBar label="Hook Strength"    score={analysis.hookScore}      color={CYAN}   />
-                <ScoreBar label="Retention Power"  score={analysis.retentionScore} color={GREEN}  />
-                <ScoreBar label="Emotion Trigger"  score={analysis.emotionScore}   color={GOLD}   />
-                <ScoreBar label="Call to Action"   score={analysis.ctaScore}       color={CORAL}  />
+              <div style={{flex:1,minWidth:180,paddingTop:4}}>
+                <Bar label="Hook Strength"   score={an.hookScore}      color={G.cyan}/>
+                <Bar label="Retention Power" score={an.retentionScore} color={G.green}/>
+                <Bar label="Emotion Trigger" score={an.emotionScore}   color={G.gold}/>
+                <Bar label="Call to Action"  score={an.ctaScore}       color={G.coral}/>
               </div>
             </div>
-            <div style={{ background: BG3, borderRadius: 8, padding: "12px 16px", display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ color: "#444", fontSize: 10, textTransform: "uppercase", letterSpacing: 1 }}>Emotion Triggered</div>
-              <div style={{ color: GOLD, fontWeight: 700, fontSize: 17 }}>{analysis.emotionTriggered}</div>
+            <div style={{background:G.card2,borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{color:G.muted,fontSize:10,textTransform:"uppercase",letterSpacing:1}}>Emotion Triggered</div>
+              <div style={{color:G.gold,fontWeight:800,fontSize:18}}>{an.emotionTriggered}</div>
             </div>
           </Card>
 
           {/* Why it worked */}
-          <Card accent={CYAN} style={{ marginBottom: 16 }}>
-            <Mono size={10} color={CYAN} style={{ textTransform: "uppercase", letterSpacing: 2, display: "block", marginBottom: 14 }}>// why it went viral</Mono>
-            <div style={{ color: "#999", fontSize: 13, lineHeight: 1.7, marginBottom: 16 }}>{analysis.audienceInsight}</div>
-            {analysis.whyItWorked.map((r, i) => (
-              <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 0", borderBottom: i < analysis.whyItWorked.length - 1 ? `1px solid ${BORDER}` : "none" }}>
-                <Mono size={11} color={CYAN}>{String(i + 1).padStart(2, "0")}</Mono>
-                <div style={{ color: "#ccc", fontSize: 13, lineHeight: 1.6 }}>{r}</div>
+          <Card style={{marginBottom:16}}>
+            <CLabel color={G.cyan}>Why It Went Viral</CLabel>
+            <div style={{color:"#aaa",fontSize:13,lineHeight:1.8,marginBottom:16}}>{an.audienceInsight}</div>
+            {an.whyItWorked.map((r,i)=>(
+              <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 0",borderBottom:i<an.whyItWorked.length-1?`1px solid ${G.border}`:"none"}}>
+                <span style={{fontFamily:"'Courier New',monospace",fontSize:11,color:G.cyan,flexShrink:0}}>{String(i+1).padStart(2,"0")}</span>
+                <div style={{color:"#ccc",fontSize:13,lineHeight:1.6}}>{r}</div>
               </div>
             ))}
-            <div style={{ background: `${GREEN}08`, border: `1px solid ${GREEN}20`, borderRadius: 8, padding: "12px 16px", marginTop: 14 }}>
-              <div style={{ color: GREEN, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Hook Formula</div>
-              <div style={{ color: "#ccc", fontSize: 13 }}>{analysis.hookFormula}</div>
+            <div style={{background:`${G.green}0a`,border:`1px solid ${G.green}22`,borderRadius:10,padding:"12px 16px",marginTop:14}}>
+              <div style={{color:G.green,fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Hook Formula</div>
+              <div style={{color:"#ccc",fontSize:13}}>{an.hookFormula}</div>
             </div>
           </Card>
 
           {/* Scripts */}
-          <div style={{ marginBottom: 16 }}>
-            <Mono size={10} color={PURPLE} style={{ textTransform: "uppercase", letterSpacing: 2, display: "block", marginBottom: 12 }}>// scripts — ready to film</Mono>
-            {analysis.scripts.map((s, i) => (
-              <Card key={i} accent={PURPLE} style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>Script {i + 1} — {s.title}</div>
-                  <div style={{ fontSize: 10, padding: "3px 8px", borderRadius: 10, border: `1px solid ${PURPLE}40`, color: PURPLE, textTransform: "uppercase", letterSpacing: 1 }}>READY</div>
+          <div style={{marginBottom:8}}>
+            <div style={{color:G.muted,fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:12,fontFamily:"'Courier New',monospace"}}>Scripts — Ready to Film</div>
+            {an.scripts.map((sc,i)=>(
+              <Card key={i} style={{marginBottom:12,borderLeft:`3px solid ${G.purple}`,borderRadius:"0 12px 12px 0"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                  <div style={{color:G.text,fontWeight:700,fontSize:14}}>Script {i+1} — {sc.title}</div>
+                  <span style={{fontSize:10,padding:"3px 9px",borderRadius:10,border:`1px solid ${G.purple}40`,color:G.purple,textTransform:"uppercase",letterSpacing:1}}>READY</span>
                 </div>
-                <div style={{ marginBottom: 10 }}>
-                  <div style={{ color: CORAL, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 5 }}>Hook — 0 to 3 sec</div>
-                  <div style={{ background: `${CORAL}10`, border: `1px solid ${CORAL}25`, borderRadius: 6, padding: "10px 14px", color: "#fff", fontSize: 15, fontWeight: 600, lineHeight: 1.5 }}>"{s.hook}"</div>
+                <div style={{marginBottom:10}}>
+                  <div style={{color:G.coral,fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:5}}>Hook — 0 to 3 sec</div>
+                  <div style={{background:`${G.coral}0e`,border:`1px solid ${G.coral}25`,borderRadius:8,padding:"11px 14px",color:G.text,fontSize:15,fontWeight:600,lineHeight:1.5}}>"{sc.hook}"</div>
                 </div>
-                <div style={{ marginBottom: 10 }}>
-                  <div style={{ color: CYAN, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 5 }}>Body — 4 to 40 sec</div>
-                  <div style={{ background: BG3, border: `1px solid ${BORDER}`, borderRadius: 6, padding: "10px 14px", color: "#bbb", fontSize: 13, lineHeight: 1.7 }}>{s.body}</div>
+                <div style={{marginBottom:10}}>
+                  <div style={{color:G.cyan,fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:5}}>Body — 4 to 40 sec</div>
+                  <div style={{background:G.card2,border:`1px solid ${G.border}`,borderRadius:8,padding:"11px 14px",color:"#bbb",fontSize:13,lineHeight:1.8}}>{sc.body}</div>
                 </div>
-                <div style={{ marginBottom: 10 }}>
-                  <div style={{ color: GREEN, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 5 }}>CTA — last 5 sec</div>
-                  <div style={{ background: `${GREEN}10`, border: `1px solid ${GREEN}25`, borderRadius: 6, padding: "10px 14px", color: GREEN, fontSize: 14, fontWeight: 600 }}>"{s.cta}"</div>
+                <div style={{marginBottom:sc.why?10:0}}>
+                  <div style={{color:G.green,fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:5}}>CTA — Last 5 sec</div>
+                  <div style={{background:`${G.green}0e`,border:`1px solid ${G.green}25`,borderRadius:8,padding:"11px 14px",color:G.green,fontSize:14,fontWeight:700}}>"{sc.cta}"</div>
                 </div>
-                {s.why && <div style={{ color: "#444", fontSize: 11, lineHeight: 1.5, borderTop: `1px solid ${BORDER}`, paddingTop: 10 }}>{s.why}</div>}
+                {sc.why && <div style={{color:G.muted,fontSize:11,lineHeight:1.5,borderTop:`1px solid ${G.border}`,paddingTop:10,marginTop:10}}>{sc.why}</div>}
               </Card>
             ))}
           </div>
 
           {/* Hooks */}
-          <Card accent={GREEN} style={{ marginBottom: 16 }}>
-            <Mono size={10} color={GREEN} style={{ textTransform: "uppercase", letterSpacing: 2, display: "block", marginBottom: 12 }}>// standalone hooks — swipe file</Mono>
-            {analysis.topHooks.map((h, i) => (
-              <div key={i} style={{ background: BG3, borderRadius: 6, padding: "12px 14px", marginBottom: 8, fontSize: 14, color: "#ddd", lineHeight: 1.5 }}>
-                <Mono size={11} color={GREEN}>{String(i + 1).padStart(2, "0")}  </Mono>"{h}"
+          <Card style={{marginBottom:16}}>
+            <CLabel color={G.green}>Standalone Hooks — Swipe File</CLabel>
+            {an.topHooks.map((h,i)=>(
+              <div key={i} style={{background:G.card2,borderRadius:8,padding:"12px 14px",marginBottom:8,fontSize:14,color:"#ddd",lineHeight:1.5}}>
+                <span style={{fontFamily:"'Courier New',monospace",fontSize:11,color:G.green,marginRight:8}}>{String(i+1).padStart(2,"0")}</span>"{h}"
               </div>
             ))}
           </Card>
 
           {/* Hashtags */}
-          <Card accent={PURPLE} style={{ marginBottom: 16 }}>
-            <Mono size={10} color={PURPLE} style={{ textTransform: "uppercase", letterSpacing: 2, display: "block", marginBottom: 12 }}>// hashtag strategy</Mono>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {analysis.hashtagStrategy.map((t, i) => (
-                <div key={i} style={{ background: BG3, border: `1px solid ${BORDER}`, borderRadius: 20, padding: "6px 14px", fontSize: 13, color: PURPLE, fontWeight: 600 }}>#{t}</div>
+          <Card style={{marginBottom:16}}>
+            <CLabel color={G.purple}>Hashtag Strategy</CLabel>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              {an.hashtagStrategy.map((t,i)=>(
+                <div key={i} style={{background:G.card2,border:`1px solid ${G.border}`,borderRadius:20,padding:"7px 14px",fontSize:13,color:G.purple,fontWeight:600}}>#{t}</div>
               ))}
             </div>
           </Card>
 
-          {/* Warnings */}
-          {analysis.warningSignals?.length > 0 && (
-            <Card accent={CORAL} style={{ marginBottom: 16 }}>
-              <Mono size={10} color={CORAL} style={{ textTransform: "uppercase", letterSpacing: 2, display: "block", marginBottom: 12 }}>// watch out for</Mono>
-              {analysis.warningSignals.map((w, i) => (
-                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 0", borderBottom: i < analysis.warningSignals.length - 1 ? `1px solid ${BORDER}` : "none" }}>
-                  <span style={{ color: CORAL }}>⚠</span>
-                  <div style={{ color: "#999", fontSize: 13, lineHeight: 1.5 }}>{w}</div>
+          {an.warningSignals?.length>0 && (
+            <Card style={{marginBottom:16,borderLeft:`3px solid ${G.coral}`,borderRadius:"0 12px 12px 0"}}>
+              <CLabel color={G.coral}>Watch Out For</CLabel>
+              {an.warningSignals.map((w,i)=>(
+                <div key={i} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:i<an.warningSignals.length-1?`1px solid ${G.border}`:"none"}}>
+                  <span style={{color:G.coral}}>⚠</span>
+                  <div style={{color:"#999",fontSize:13,lineHeight:1.5}}>{w}</div>
                 </div>
               ))}
             </Card>
@@ -288,12 +458,12 @@ function AnalyseTab() {
         </>
       )}
 
-      {!videoData && !loading && (
-        <div style={{ textAlign: "center", padding: "70px 20px" }}>
-          <div style={{ fontFamily: "'Courier New', monospace", fontSize: 64, color: GOLD, opacity: 0.06, lineHeight: 1, marginBottom: 24 }}>⬡</div>
-          <div style={{ color: "#2e2e2c", fontSize: 13, lineHeight: 2, fontFamily: "'Courier New', monospace" }}>
-            paste any viral tiktok or instagram url<br />
-            reconexus reverse-engineers it<br />
+      {!vd && !busy && (
+        <div style={{textAlign:"center",padding:"80px 20px"}}>
+          <div style={{fontFamily:"'Courier New',monospace",fontSize:72,color:G.gold,opacity:.05,lineHeight:1,marginBottom:24}}>⚡</div>
+          <div style={{color:G.dim,fontSize:13,lineHeight:2.2,fontFamily:"'Courier New',monospace"}}>
+            paste any viral tiktok or instagram url<br/>
+            reconexus reverse-engineers it<br/>
             and writes you 3 scripts to film
           </div>
         </div>
@@ -302,151 +472,101 @@ function AnalyseTab() {
   );
 }
 
-function ChannelTab() {
-  return (
-    <div>
-      <Eyebrow label="my channel" color={GREEN} />
-      <Card accent={GREEN}>
-        <div style={{ color: "#333", fontSize: 13, fontFamily: "'Courier New', monospace", marginBottom: 20 }}>@allianzhousinguk</div>
-        <div style={{ color: "#2a2a28", fontSize: 13 }}>Channel scraper coming in the next build. Will pull your last 30 videos, score each one, and show you your best-performing hooks and patterns.</div>
-      </Card>
-    </div>
-  );
-}
+/* ─── SCRIPT VAULT ───────────────────────────────────────────────────────── */
+function Vault() {
+  const [scripts,setScripts]=useState([]);
+  const [busy,setBusy]=useState(true);
+  const [filter,setFilter]=useState("all");
 
-function IntelligenceTab() {
-  return (
-    <div>
-      <Eyebrow label="reconexus intelligence" color={GOLD} />
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}>
-        <div style={{ background: `${GOLD}08`, border: `1px solid ${GOLD}20`, borderRadius: "50%", width: 90, height: 90, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <ReconexusLogo size={50} />
-        </div>
-      </div>
-      <Card accent={GOLD}>
-        <Mono size={10} color={GOLD} style={{ textTransform: "uppercase", letterSpacing: 2, display: "block", marginBottom: 10 }}>// pattern memory</Mono>
-        <div style={{ color: "#2e2e2c", fontSize: 13, lineHeight: 1.8 }}>
-          Reconexus builds intelligence from every video you analyse. Hook formulas, emotion triggers, engagement patterns — it accumulates over time and surfaces what consistently works for your audience.
-          <br /><br />
-          Analyse more videos to feed the engine.
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-function CompetitorsTab() {
-  return (
-    <div>
-      <Eyebrow label="competitors" color={CORAL} />
-      <Card accent={CORAL}>
-        <div style={{ color: "#2a2a28", fontSize: 13, lineHeight: 1.8 }}>
-          Add competitor accounts — Reconexus scrapes their top videos, analyses what works, and surfaces patterns you can adapt. Coming in the next build.
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-function ScriptVaultTab() {
-  const [scripts, setScripts]   = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [filter, setFilter]     = useState("all");
-
-  useEffect(() => {
-    setLoading(true);
-    const q = filter !== "all" ? `?status=${filter}` : "";
-    fetch(`/api/get-scripts${q}`)
-      .then(r => r.json())
-      .then(d => { setScripts(d.scripts || []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [filter]);
+  useEffect(()=>{
+    setBusy(true);
+    const q=filter!=="all"?`?status=${filter}`:"";
+    fetch(`/api/get-scripts${q}`).then(r=>r.json())
+      .then(d=>{setScripts(d.scripts||[]);setBusy(false);}).catch(()=>setBusy(false));
+  },[filter]);
 
   async function markUsed(id) {
-    await fetch("/api/update-script", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scriptId: id, status: "used" }),
-    });
-    setScripts(prev => prev.map(s => s.id === id ? { ...s, status: "used" } : s));
+    await fetch("/api/update-script",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({scriptId:id,status:"used"})});
+    setScripts(prev=>prev.map(s=>s.id===id?{...s,status:"used"}:s));
   }
 
   return (
     <div>
-      <Eyebrow label="script vault" color={PURPLE} />
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        {["all", "unused", "used"].map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{ background: filter === f ? `${PURPLE}18` : "transparent", border: `1px solid ${filter === f ? PURPLE : "#2a2a28"}`, borderRadius: 20, padding: "5px 14px", fontSize: 12, color: filter === f ? PURPLE : "#555", cursor: "pointer", fontFamily: "inherit", textTransform: "capitalize" }}>{f}</button>
+      <div style={{display:"flex",gap:8,marginBottom:20}}>
+        {["all","unused","used"].map(f=>(
+          <button key={f} onClick={()=>setFilter(f)} style={{background:filter===f?`${G.purple}18`:"transparent",border:`1px solid ${filter===f?G.purple:G.dim}`,borderRadius:20,padding:"6px 16px",fontSize:12,color:filter===f?G.purple:G.muted,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{f}</button>
         ))}
       </div>
-      {loading && <div style={{ color: "#2a2a28", fontSize: 13, fontFamily: "'Courier New', monospace" }}>loading scripts...</div>}
-      {!loading && scripts.length === 0 && (
-        <div style={{ textAlign: "center", padding: "60px 20px", color: "#2a2a28", fontSize: 13, fontFamily: "'Courier New', monospace" }}>
-          no scripts yet — analyse a viral video to generate scripts
-        </div>
-      )}
-      {scripts.map(s => (
-        <Card key={s.id} accent={s.status === "used" ? "#2a2a28" : PURPLE}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-            <div style={{ color: s.status === "used" ? "#444" : "#fff", fontWeight: 700, fontSize: 14 }}>{s.title}</div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0, marginLeft: 12 }}>
-              <div style={{ fontSize: 10, padding: "3px 8px", borderRadius: 10, border: `1px solid ${s.status === "used" ? "#2a2a28" : `${PURPLE}40`}`, color: s.status === "used" ? "#333" : PURPLE, textTransform: "uppercase", letterSpacing: 1 }}>{s.status}</div>
-              {s.status === "unused" && (
-                <button onClick={() => markUsed(s.id)} style={{ background: `${PURPLE}15`, border: `1px solid ${PURPLE}40`, borderRadius: 6, padding: "4px 10px", fontSize: 11, color: PURPLE, cursor: "pointer", fontFamily: "inherit" }}>Mark Used</button>
-              )}
+      {busy && <div style={{color:G.muted,fontSize:13}}>Loading...</div>}
+      {!busy && scripts.length===0 && <div style={{color:G.dim,fontSize:13,textAlign:"center",padding:"50px 0",fontFamily:"'Courier New',monospace"}}>no scripts yet — analyse a viral video to generate scripts</div>}
+      {scripts.map(s=>(
+        <Card key={s.id} style={{marginBottom:12,borderLeft:`3px solid ${s.status==="used"?G.dim:G.purple}`,borderRadius:"0 12px 12px 0"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+            <div style={{color:s.status==="used"?"#444":G.text,fontWeight:700,fontSize:14}}>{s.title}</div>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0,marginLeft:12}}>
+              <span style={{fontSize:10,padding:"3px 8px",borderRadius:10,border:`1px solid ${s.status==="used"?G.dim:`${G.purple}40`}`,color:s.status==="used"?"#333":G.purple,textTransform:"uppercase",letterSpacing:1}}>{s.status}</span>
+              {s.status==="unused" && <button onClick={()=>markUsed(s.id)} style={{background:`${G.purple}15`,border:`1px solid ${G.purple}40`,borderRadius:7,padding:"4px 11px",fontSize:11,color:G.purple,cursor:"pointer",fontFamily:"inherit"}}>Mark Used</button>}
             </div>
           </div>
-          <div style={{ background: `${CORAL}10`, border: `1px solid ${CORAL}20`, borderRadius: 6, padding: "10px 12px", marginBottom: 8, color: "#ddd", fontSize: 14, fontStyle: "italic" }}>"{s.hook}"</div>
-          <div style={{ color: "#888", fontSize: 13, lineHeight: 1.6, marginBottom: 8 }}>{s.body}</div>
-          <div style={{ color: GREEN, fontSize: 12, fontWeight: 600, marginBottom: 6 }}>{s.cta}</div>
-          {s.why && <div style={{ color: "#333", fontSize: 11, borderTop: `1px solid ${BORDER}`, paddingTop: 8 }}>{s.why}</div>}
+          <div style={{background:`${G.coral}0e`,border:`1px solid ${G.coral}20`,borderRadius:7,padding:"10px 13px",marginBottom:8,color:"#ddd",fontSize:14,fontStyle:"italic"}}>"{s.hook}"</div>
+          <div style={{color:"#888",fontSize:13,lineHeight:1.7,marginBottom:8}}>{s.body}</div>
+          <div style={{color:G.green,fontSize:12,fontWeight:700}}>{s.cta}</div>
+          {s.why && <div style={{color:"#333",fontSize:11,borderTop:`1px solid ${G.border}`,paddingTop:8,marginTop:8}}>{s.why}</div>}
         </Card>
       ))}
     </div>
   );
 }
 
+/* ─── PLACEHOLDERS ───────────────────────────────────────────────────────── */
+function Placeholder({ color, label, desc }) {
+  return (
+    <Card>
+      <div style={{textAlign:"center",padding:"40px 20px"}}>
+        <div style={{fontFamily:"'Courier New',monospace",fontSize:11,color:`${color}80`,textTransform:"uppercase",letterSpacing:"2px",marginBottom:20}}>// reconexus — {label}</div>
+        <Brain s={52}/>
+        <div style={{color:G.dim,fontSize:13,lineHeight:1.9,marginTop:20,fontFamily:"'Courier New',monospace"}}>{desc}</div>
+      </div>
+    </Card>
+  );
+}
+
+/* ─── ROOT ───────────────────────────────────────────────────────────────── */
+const PAGE_META = {
+  home:    { title:"Dashboard",             sub:`${new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}` },
+  analyse: { title:"Analyse a Video",       sub:"Paste any viral TikTok or Instagram URL" },
+  channel: { title:"My Channel",            sub:"@allianzhousinguk — performance overview" },
+  intel:   { title:"Reconexus Intelligence",sub:"Pattern memory — learns from every video you analyse" },
+  comp:    { title:"Competitors",           sub:"Track and reverse-engineer competitor accounts" },
+  vault:   { title:"Script Vault",          sub:"Every script ever generated — ready to film" },
+};
+
 export default function App() {
-  const [tab, setTab] = useState("analyse");
+  const [sec, setSec] = useState("home");
+  const meta = PAGE_META[sec];
 
   return (
-    <div style={{ background: BG, minHeight: "100vh", fontFamily: "'Inter', system-ui, sans-serif", color: "#fff" }}>
+    <div style={{background:G.bg,minHeight:"100vh",display:"flex",fontFamily:"'Inter',system-ui,sans-serif",color:G.text}}>
       <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        input::placeholder { color: #2e2e2c; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.2} }
-        ::-webkit-scrollbar { width: 4px; background: ${BG}; }
-        ::-webkit-scrollbar-thumb { background: #2a2a28; border-radius: 2px; }
+        *{box-sizing:border-box;margin:0;padding:0;}
+        input::placeholder{color:${G.dim};}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+        ::-webkit-scrollbar{width:4px;background:${G.bg};}
+        ::-webkit-scrollbar-thumb{background:${G.dim};border-radius:2px;}
       `}</style>
 
-      {/* Header */}
-      <div style={{ borderBottom: `1px solid ${BORDER}`, padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: BG, zIndex: 100 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <ReconexusLogo size={28} />
-          <div>
-            <div style={{ fontWeight: 900, fontSize: 14, letterSpacing: "2px", color: GOLD, textTransform: "uppercase" }}>Reconexus</div>
-            <div style={{ color: "#2e2e2c", fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", marginTop: 1 }}>Allianz Housing Intelligence</div>
-          </div>
-        </div>
-        <div style={{ fontFamily: "'Courier New', monospace", fontSize: 10, color: "#222" }}>// by LMB</div>
-      </div>
+      <Sidebar cur={sec} go={setSec}/>
 
-      {/* Tabs */}
-      <div style={{ borderBottom: `1px solid ${BORDER}`, padding: "0 20px", display: "flex", overflowX: "auto" }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{ background: "transparent", border: "none", borderBottom: tab === t.id ? `2px solid ${t.color}` : "2px solid transparent", padding: "13px 16px", fontSize: 13, fontWeight: tab === t.id ? 700 : 400, color: tab === t.id ? t.color : "#3a3a38", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", transition: "color 0.15s" }}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Content */}
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "28px 20px 60px" }}>
-        {tab === "analyse"      && <AnalyseTab />}
-        {tab === "channel"      && <ChannelTab />}
-        {tab === "intelligence" && <IntelligenceTab />}
-        {tab === "competitors"  && <CompetitorsTab />}
-        {tab === "vault"        && <ScriptVaultTab />}
+      <div style={{marginLeft:240,flex:1,display:"flex",flexDirection:"column",minHeight:"100vh"}}>
+        <Header title={meta.title} sub={meta.sub}/>
+        <main style={{padding:"24px 32px 60px",flex:1}}>
+          {sec==="home"    && <Home/>}
+          {sec==="analyse" && <Analyse/>}
+          {sec==="channel" && <Placeholder color={G.green}  label="my channel"   desc={"Coming next build\nWill scrape @allianzhousinguk and score your last 30 videos"}/>}
+          {sec==="intel"   && <Placeholder color={G.gold}   label="intelligence" desc={"Reconexus builds pattern memory from every video you analyse\nAnalyse more videos to feed the engine"}/>}
+          {sec==="comp"    && <Placeholder color={G.coral}  label="competitors"  desc={"Add competitor accounts and Reconexus will scrape their top videos\nSurfaces what works so you can adapt it"}/>}
+          {sec==="vault"   && <Vault/>}
+        </main>
       </div>
     </div>
   );
