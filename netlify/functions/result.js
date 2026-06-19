@@ -1,6 +1,12 @@
 const { default: Anthropic } = require('@anthropic-ai/sdk');
+const { createClient } = require('@supabase/supabase-js');
 
 const APIFY_BASE = 'https://api.apify.com/v2';
+const ALLIANZ_WORKSPACE_ID = 'a0000000-0000-0000-0000-000000000001';
+
+function getSupabase() {
+  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+}
 
 async function checkApifyStatus(runId) {
   const token = process.env.APIFY_API_KEY;
@@ -108,6 +114,50 @@ Return ONLY this JSON structure (fill in all fields):
   return JSON.parse(text.slice(jsonStart, jsonEnd + 1));
 }
 
+async function saveToSupabase(runId, url, platform, videoData, rawItem, analysis) {
+  try {
+    const supabase = getSupabase();
+
+    const { data: savedAnalysis, error: analysisError } = await supabase
+      .from('analyses')
+      .insert({
+        workspace_id: ALLIANZ_WORKSPACE_ID,
+        url,
+        platform,
+        apify_run_id: runId,
+        status: 'done',
+        video_data: videoData,
+        raw_apify_data: rawItem,
+        analysis,
+      })
+      .select()
+      .single();
+
+    if (analysisError) {
+      console.error('Analysis save error:', analysisError.message);
+      return;
+    }
+
+    if (savedAnalysis && analysis.scripts && analysis.scripts.length > 0) {
+      const scriptRows = analysis.scripts.map(s => ({
+        workspace_id: ALLIANZ_WORKSPACE_ID,
+        analysis_id: savedAnalysis.id,
+        title: s.title || '',
+        hook: s.hook || '',
+        body: s.body || '',
+        cta: s.cta || '',
+        why: s.why || '',
+        platform,
+        status: 'unused',
+      }));
+      const { error: scriptsError } = await supabase.from('scripts').insert(scriptRows);
+      if (scriptsError) console.error('Scripts save error:', scriptsError.message);
+    }
+  } catch (err) {
+    console.error('Supabase save failed (non-fatal):', err.message);
+  }
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
@@ -140,6 +190,8 @@ exports.handler = async (event) => {
     if (!items.length) throw new Error('Scraper returned no results for this URL');
     const videoData = normalizeVideoData(items[0], platform, url);
     const analysis = await analyseWithClaude(videoData);
+
+    await saveToSupabase(runId, url, platform, videoData, items[0], analysis);
 
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ videoData, analysis }) };
   } catch (err) {
