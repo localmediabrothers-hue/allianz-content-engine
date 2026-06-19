@@ -2,26 +2,29 @@ import { useState, useEffect } from "react";
 
 const G = {
   gold:"#FFB800", cyan:"#00C8FF", green:"#00FF88", coral:"#FF4466", purple:"#AA44FF",
-  bg:"#0d0d0b", card:"#161614", card2:"#1e1e1c", border:"#252523",
-  muted:"#4a4a48", text:"#f0f0ee", dim:"#2a2a28",
+  bg:"#0a0a09", card:"#181816", card2:"#222220", border:"#333331",
+  muted:"#999997", text:"#ffffff", dim:"#444442",
 };
 
 /* ─── Brain logo ─────────────────────────────────────────────────────────── */
 function Brain({ s = 26 }) {
   return (
-    <svg width={s} height={s} viewBox="0 0 32 32" fill="none">
-      <path d="M16 4C10.5 4 6.5 8.2 6.5 13.2c0 2.2.8 4.2 2.2 5.8V23h14.6v-4c1.4-1.6 2.2-3.6 2.2-5.8C25.5 8.2 21.5 4 16 4z" stroke={G.gold} strokeWidth="1.2"/>
-      <polygon points="16,5.5 17.2,7.8 16,10.1 14.8,7.8" fill={G.gold}/>
-      <polygon points="7.5,13 9,14.8 7.5,16.6 6,14.8" fill={G.gold} opacity=".7"/>
-      <polygon points="24.5,13 26,14.8 24.5,16.6 23,14.8" fill={G.gold} opacity=".7"/>
-      <polygon points="11.5,18.5 12.8,20 11.5,21.5 10.2,20" fill={G.gold} opacity=".55"/>
-      <polygon points="20.5,18.5 21.8,20 20.5,21.5 19.2,20" fill={G.gold} opacity=".55"/>
-      <polygon points="16,13.5 17,15 16,16.5 15,15" fill="#fff" opacity=".9"/>
-      <line x1="16" y1="10.1" x2="16" y2="13.5" stroke={G.gold} strokeWidth=".7" opacity=".5"/>
-      <line x1="9" y1="14.8" x2="15" y2="15" stroke={G.gold} strokeWidth=".7" opacity=".4"/>
-      <line x1="23" y1="14.8" x2="17" y2="15" stroke={G.gold} strokeWidth=".7" opacity=".4"/>
-      <line x1="12.8" y1="20" x2="15" y2="15" stroke={G.gold} strokeWidth=".7" opacity=".4"/>
-      <line x1="19.2" y1="20" x2="17" y2="15" stroke={G.gold} strokeWidth=".7" opacity=".4"/>
+    <svg width={s} height={s} viewBox="0 0 64 64" fill="none">
+      <circle cx="32" cy="32" r="30" fill={`${G.gold}18`} stroke={`${G.gold}40`} strokeWidth="1"/>
+      <path d="M32 10C22 10 14 18 14 28c0 4 1.4 7.8 3.8 10.8V46h28.4v-7.2C48.6 35.8 50 32 50 28 50 18 42 10 32 10z" stroke={G.gold} strokeWidth="1.8" fill={`${G.gold}08`}/>
+      <polygon points="32,12 34.2,16.5 32,21 29.8,16.5" fill={G.gold}/>
+      <polygon points="16,27 18.8,30 16,33 13.2,30" fill={G.gold} opacity=".8"/>
+      <polygon points="48,27 50.8,30 48,33 45.2,30" fill={G.gold} opacity=".8"/>
+      <polygon points="23,38 25.5,41 23,44 20.5,41" fill={G.gold} opacity=".65"/>
+      <polygon points="41,38 43.5,41 41,44 38.5,41" fill={G.gold} opacity=".65"/>
+      <polygon points="32,27 34,30 32,33 30,30" fill="#fff" opacity=".95"/>
+      <line x1="32" y1="21" x2="32" y2="27" stroke={G.gold} strokeWidth="1.2" opacity=".6"/>
+      <line x1="18.8" y1="30" x2="30" y2="30" stroke={G.gold} strokeWidth="1.2" opacity=".5"/>
+      <line x1="45.2" y1="30" x2="34" y2="30" stroke={G.gold} strokeWidth="1.2" opacity=".5"/>
+      <line x1="25.5" y1="41" x2="30" y2="30" stroke={G.gold} strokeWidth="1.2" opacity=".5"/>
+      <line x1="38.5" y1="41" x2="34" y2="30" stroke={G.gold} strokeWidth="1.2" opacity=".5"/>
+      <line x1="29.8" y1="16.5" x2="18.8" y2="30" stroke={G.gold} strokeWidth=".8" opacity=".25"/>
+      <line x1="34.2" y1="16.5" x2="45.2" y2="30" stroke={G.gold} strokeWidth=".8" opacity=".25"/>
     </svg>
   );
 }
@@ -34,6 +37,7 @@ const PATHS = {
   intel:   ["M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"],
   comp:    ["M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2","M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8","M23 21v-2a4 4 0 0 0-3-3.87","M16 3.13a4 4 0 0 1 0 7.75"],
   vault:   ["M12 2L2 7l10 5 10-5-10-5","M2 17l10 5 10-5","M2 12l10 5 10-5"],
+  chat:    ["M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"],
 };
 function NIcon({ n, sz = 17, col }) {
   return (
@@ -51,17 +55,18 @@ const NAV = [
   { id:"intel",   label:"Intelligence", n:"intel",   c:G.gold   },
   { id:"comp",    label:"Competitors",  n:"comp",    c:G.coral  },
   { id:"vault",   label:"Script Vault", n:"vault",   c:G.purple },
+  { id:"chat",    label:"Chat Reconexus",n:"chat",   c:G.gold   },
 ];
 
 function Sidebar({ cur, go }) {
   return (
     <div style={{width:240,minHeight:"100vh",background:"#0f0f0d",borderRight:`1px solid ${G.border}`,display:"flex",flexDirection:"column",position:"fixed",left:0,top:0,zIndex:300}}>
-      <div style={{padding:"22px 20px 18px",borderBottom:`1px solid ${G.border}`,display:"flex",alignItems:"center",gap:11}}>
-        <Brain s={28}/>
-        <div>
-          <div style={{fontSize:13,fontWeight:900,letterSpacing:"2.5px",color:G.gold}}>RECONEXUS</div>
-          <div style={{fontSize:9,color:G.muted,letterSpacing:"1.5px",textTransform:"uppercase",marginTop:2}}>Content Engine</div>
+      <div style={{padding:"24px 20px 20px",borderBottom:`1px solid ${G.border}`,textAlign:"center"}}>
+        <div style={{display:"flex",justifyContent:"center",marginBottom:12}}>
+          <Brain s={56}/>
         </div>
+        <div style={{fontSize:15,fontWeight:900,letterSpacing:"3px",color:G.gold}}>RECONEXUS</div>
+        <div style={{fontSize:10,color:G.muted,letterSpacing:"1.5px",textTransform:"uppercase",marginTop:4}}>Content Intelligence Engine</div>
       </div>
       <nav style={{flex:1,padding:"14px 10px"}}>
         {NAV.map(item => {
@@ -221,14 +226,14 @@ function Home() {
           </div>
         </Card>
         <Card>
-          <CLabel>Platform Split</CLabel>
+          <CLabel>Videos Analysed By Platform</CLabel>
           <Donut segs={[{v:tik||1,c:G.cyan},{v:ins||1,c:G.purple}]} val={rows.length} lbl="total" size={130}/>
           <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
             {[{l:"TikTok",v:tik,c:G.cyan},{l:"Instagram",v:ins,c:G.purple}].map(p=>(
-              <div key={p.l} style={{display:"flex",alignItems:"center",gap:8}}>
-                <div style={{width:9,height:9,borderRadius:"50%",background:p.c}}/>
-                <span style={{color:G.muted,fontSize:12,flex:1}}>{p.l}</span>
-                <span style={{color:G.text,fontSize:14,fontWeight:700,fontFamily:"'Nunito',sans-serif"}}>{p.v}</span>
+              <div key={p.l} style={{display:"flex",alignItems:"center",gap:10,background:G.card2,borderRadius:8,padding:"8px 12px"}}>
+                <div style={{width:10,height:10,borderRadius:"50%",background:p.c,flexShrink:0}}/>
+                <span style={{color:G.muted,fontSize:13,flex:1,fontWeight:600}}>{p.l}</span>
+                <span style={{color:G.text,fontSize:16,fontWeight:800}}>{p.v} <span style={{color:G.muted,fontSize:11,fontWeight:400}}>videos</span></span>
               </div>
             ))}
           </div>
@@ -518,6 +523,83 @@ function Vault() {
   );
 }
 
+/* ─── CHAT RECONEXUS ─────────────────────────────────────────────────────── */
+function ChatReconexus() {
+  const [msgs, setMsgs] = useState([
+    { role:"assistant", text:"I'm Reconexus. Ask me anything about your content strategy — what hooks are working, what to post next, how to grow @allianzhousinguk. The more videos you analyse, the smarter I get." }
+  ]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const bottomRef = useState(null);
+
+  async function send() {
+    const q = input.trim();
+    if (!q || busy) return;
+    setInput("");
+    const next = [...msgs, { role:"user", text:q }];
+    setMsgs(next);
+    setBusy(true);
+    try {
+      const res = await fetch("/api/chat-reconexus", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ message: q, history: next.slice(-10) })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error||"Failed");
+      setMsgs(prev => [...prev, { role:"assistant", text:data.reply }]);
+    } catch(e) {
+      setMsgs(prev => [...prev, { role:"assistant", text:`Error: ${e.message}` }]);
+    }
+    setBusy(false);
+  }
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 180px)",minHeight:500}}>
+      {/* Messages */}
+      <div style={{flex:1,overflowY:"auto",marginBottom:16,display:"flex",flexDirection:"column",gap:12}}>
+        {msgs.map((m,i) => (
+          <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",flexDirection:m.role==="user"?"row-reverse":"row"}}>
+            {/* Avatar */}
+            <div style={{width:34,height:34,borderRadius:"50%",background:m.role==="assistant"?`${G.gold}25`:G.card2,border:`1px solid ${m.role==="assistant"?G.gold:G.border}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              {m.role==="assistant" ? <Brain s={18}/> : <span style={{fontSize:13,fontWeight:800,color:G.cyan}}>F</span>}
+            </div>
+            {/* Bubble */}
+            <div style={{maxWidth:"75%",background:m.role==="user"?`${G.cyan}18`:G.card,border:`1px solid ${m.role==="user"?`${G.cyan}40`:G.border}`,borderRadius:m.role==="user"?"16px 4px 16px 16px":"4px 16px 16px 16px",padding:"12px 16px"}}>
+              {m.role==="assistant" && <div style={{color:G.gold,fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:6}}>Reconexus</div>}
+              <div style={{color:G.text,fontSize:14,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.text}</div>
+            </div>
+          </div>
+        ))}
+        {busy && (
+          <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+            <div style={{width:34,height:34,borderRadius:"50%",background:`${G.gold}25`,border:`1px solid ${G.gold}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <Brain s={18}/>
+            </div>
+            <div style={{background:G.card,border:`1px solid ${G.border}`,borderRadius:"4px 16px 16px 16px",padding:"14px 18px",display:"flex",gap:5,alignItems:"center"}}>
+              {[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:G.gold,display:"inline-block",animation:`pulse 1s ${i*0.2}s infinite`}}/>)}
+            </div>
+          </div>
+        )}
+      </div>
+      {/* Input */}
+      <div style={{display:"flex",gap:10,background:G.card,border:`1px solid ${G.border}`,borderRadius:14,padding:12}}>
+        <input
+          value={input}
+          onChange={e=>setInput(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send()}
+          placeholder="Ask Reconexus anything about your content strategy..."
+          style={{flex:1,background:"transparent",border:"none",color:G.text,fontSize:14,outline:"none",fontFamily:"inherit"}}
+        />
+        <button onClick={send} disabled={busy||!input.trim()}
+          style={{background:busy||!input.trim()?G.card2:G.gold,border:"none",borderRadius:10,padding:"10px 20px",color:busy||!input.trim()?"#444":"#000",fontWeight:800,fontSize:13,cursor:busy||!input.trim()?"not-allowed":"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+          Send →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── PLACEHOLDERS ───────────────────────────────────────────────────────── */
 function Placeholder({ color, label, desc }) {
   return (
@@ -533,12 +615,13 @@ function Placeholder({ color, label, desc }) {
 
 /* ─── ROOT ───────────────────────────────────────────────────────────────── */
 const PAGE_META = {
-  home:    { title:"Dashboard",             sub:`${new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}` },
+  home:    { title:"Dashboard",             sub:new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"}) },
   analyse: { title:"Analyse a Video",       sub:"Paste any viral TikTok or Instagram URL" },
   channel: { title:"My Channel",            sub:"@allianzhousinguk — performance overview" },
   intel:   { title:"Reconexus Intelligence",sub:"Pattern memory — learns from every video you analyse" },
   comp:    { title:"Competitors",           sub:"Track and reverse-engineer competitor accounts" },
   vault:   { title:"Script Vault",          sub:"Every script ever generated — ready to film" },
+  chat:    { title:"Chat with Reconexus",   sub:"Your AI content strategist — ask it anything" },
 };
 
 export default function App() {
@@ -567,6 +650,7 @@ export default function App() {
           {sec==="intel"   && <Placeholder color={G.gold}   label="intelligence" desc={"Reconexus builds pattern memory from every video you analyse\nAnalyse more videos to feed the engine"}/>}
           {sec==="comp"    && <Placeholder color={G.coral}  label="competitors"  desc={"Add competitor accounts and Reconexus will scrape their top videos\nSurfaces what works so you can adapt it"}/>}
           {sec==="vault"   && <Vault/>}
+          {sec==="chat"    && <ChatReconexus/>}
         </main>
       </div>
     </div>
