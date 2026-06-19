@@ -600,6 +600,267 @@ function ChatReconexus() {
   );
 }
 
+/* ─── COMPETITORS ────────────────────────────────────────────────────────── */
+function Competitors() {
+  const [competitors, setCompetitors] = useState([]);
+  const [busy, setBusy] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [videos, setVideos] = useState([]);
+  const [videosBusy, setVideosBusy] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [handle, setHandle] = useState('');
+  const [platform, setPlatform] = useState('tiktok');
+  const [limit, setLimit] = useState(20);
+  const [addErr, setAddErr] = useState('');
+  const [addBusy, setAddBusy] = useState(false);
+  const [scraping, setScraping] = useState({});
+
+  function fmt(n) {
+    if (!n) return '0';
+    if (n >= 1000000) return `${(n/1000000).toFixed(1)}M`;
+    if (n >= 1000) return `${(n/1000).toFixed(1)}K`;
+    return String(n);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function load() {
+    setBusy(true);
+    try {
+      const res = await fetch('/api/get-competitors');
+      const d = await res.json();
+      setCompetitors(d.competitors || []);
+    } catch {}
+    setBusy(false);
+  }
+
+  async function addCompetitor() {
+    if (!handle.trim()) { setAddErr('Enter a handle or URL'); return; }
+    setAddErr(''); setAddBusy(true);
+    try {
+      const res = await fetch('/api/add-competitor', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ input: handle.trim(), platform }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Failed to add');
+      setHandle(''); setAdding(false);
+      await load();
+    } catch(e) { setAddErr(e.message); }
+    setAddBusy(false);
+  }
+
+  async function startScrape(c) {
+    setScraping(prev => ({ ...prev, [c.id]: true }));
+    try {
+      const res = await fetch('/api/scrape-competitor', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ competitorId: c.id, limit }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Failed to start');
+      poll(c.id, d.runId, d.datasetId, d.platform);
+    } catch(e) {
+      setScraping(prev => { const n={...prev}; delete n[c.id]; return n; });
+      alert(e.message);
+    }
+  }
+
+  async function poll(competitorId, runId, datasetId, plt) {
+    for (let i=0; i<40; i++) {
+      await new Promise(r => setTimeout(r, 5000));
+      try {
+        const res = await fetch('/api/competitor-result', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ runId, datasetId, competitorId, platform: plt }),
+        });
+        const d = await res.json();
+        if (!res.ok) break;
+        if (!d.pending) {
+          setScraping(prev => { const n={...prev}; delete n[competitorId]; return n; });
+          await load();
+          if (selected && selected.id === competitorId) {
+            setVideos(d.videos || []);
+          }
+          return;
+        }
+      } catch {}
+    }
+    setScraping(prev => { const n={...prev}; delete n[competitorId]; return n; });
+  }
+
+  async function openCompetitor(c) {
+    setSelected(c); setVideos([]);
+    setVideosBusy(true);
+    try {
+      const res = await fetch(`/api/get-competitor-videos?competitorId=${c.id}`);
+      const d = await res.json();
+      setVideos(d.videos || []);
+    } catch {}
+    setVideosBusy(false);
+  }
+
+  /* ── Detail view ── */
+  if (selected) {
+    const isScraping = !!scraping[selected.id];
+    return (
+      <div>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:10}}>
+          <button onClick={() => setSelected(null)} style={{background:'transparent',border:`1px solid ${G.border}`,borderRadius:8,padding:'7px 14px',color:G.muted,cursor:'pointer',fontSize:12,fontFamily:'inherit'}}>
+            ← Back
+          </button>
+          <div style={{flex:1,minWidth:160}}>
+            <div style={{fontSize:20,fontWeight:800,color:G.text}}>{selected.handle}</div>
+            <div style={{fontSize:12,color:G.muted,marginTop:2,textTransform:'capitalize'}}>{selected.platform} · {videos.length} videos</div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{display:'flex',gap:6,alignItems:'center'}}>
+              <span style={{fontSize:11,color:G.muted}}>Videos:</span>
+              {[10,20,30,50].map(n=>(
+                <button key={n} onClick={e=>{e.stopPropagation();setLimit(n);}}
+                  style={{background:limit===n?`${G.coral}18`:'transparent',border:`1px solid ${limit===n?G.coral:G.dim}`,borderRadius:20,padding:'3px 10px',fontSize:11,color:limit===n?G.coral:G.muted,cursor:'pointer',fontFamily:'inherit'}}>{n}</button>
+              ))}
+            </div>
+            <button onClick={() => !isScraping && startScrape(selected)} disabled={isScraping}
+              style={{background:isScraping?G.card2:`${G.coral}14`,border:`1px solid ${isScraping?G.border:G.coral}`,borderRadius:10,padding:'9px 18px',color:isScraping?G.muted:G.coral,fontSize:12,fontWeight:700,cursor:isScraping?'not-allowed':'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:6}}>
+              {isScraping?<><span style={{width:6,height:6,borderRadius:'50%',background:G.coral,display:'inline-block',animation:'pulse 1s infinite'}}/>Scraping...</>:'Scrape Again →'}
+            </button>
+          </div>
+        </div>
+
+        {videosBusy && <div style={{color:G.muted,fontSize:13,padding:'40px 0',textAlign:'center'}}>Loading videos...</div>}
+        {!videosBusy && videos.length===0 && (
+          <Card><div style={{textAlign:'center',padding:'40px 20px'}}>
+            <Brain s={44}/>
+            <div style={{color:G.dim,fontSize:13,marginTop:16,lineHeight:1.9}}>No videos yet — hit Scrape to pull their top content</div>
+          </div></Card>
+        )}
+        {videos.map((v,i)=>{
+          const vd = v.video_data || v;
+          return (
+            <Card key={v.id||i} style={{marginBottom:10,borderLeft:`3px solid ${i===0?G.gold:i<3?G.cyan:G.border}`,borderRadius:'0 12px 12px 0'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+                <div style={{flex:1}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                    <span style={{fontFamily:"'Nunito',sans-serif",fontSize:13,color:i===0?G.gold:G.muted,fontWeight:700}}>#{i+1}</span>
+                    {i===0&&<span style={{fontSize:10,background:`${G.gold}18`,border:`1px solid ${G.gold}40`,borderRadius:10,padding:'2px 8px',color:G.gold}}>TOP VIDEO</span>}
+                    {i>0&&i<3&&<span style={{fontSize:10,background:`${G.cyan}18`,border:`1px solid ${G.cyan}40`,borderRadius:10,padding:'2px 8px',color:G.cyan}}>TOP 3</span>}
+                  </div>
+                  <div style={{color:'#aaa',fontSize:13,lineHeight:1.6,marginBottom:10}}>{vd.caption?.slice(0,180)}{vd.caption?.length>180?'...':''}</div>
+                  <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
+                    {[{l:'Views',v:vd.views,c:G.cyan},{l:'Likes',v:vd.likes,c:G.gold},{l:'Comments',v:vd.comments,c:G.green},{l:'Shares',v:vd.shares,c:G.purple}].map(s=>(
+                      <div key={s.l}>
+                        <div style={{fontFamily:"'Nunito',sans-serif",fontSize:17,fontWeight:800,color:s.c}}>{fmt(s.v)}</div>
+                        <div style={{fontSize:10,color:G.muted,textTransform:'uppercase',letterSpacing:.5}}>{s.l}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {vd.url&&<a href={vd.url} target="_blank" rel="noopener noreferrer"
+                  style={{color:G.muted,fontSize:11,border:`1px solid ${G.border}`,borderRadius:7,padding:'5px 10px',textDecoration:'none',flexShrink:0,whiteSpace:'nowrap'}}>View →</a>}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  }
+
+  /* ── List view ── */
+  return (
+    <div>
+      <div style={{marginBottom:20}}>
+        {!adding ? (
+          <button onClick={() => setAdding(true)}
+            style={{background:`${G.coral}18`,border:`1px solid ${G.coral}40`,borderRadius:10,padding:'10px 20px',color:G.coral,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+            + Add Competitor
+          </button>
+        ) : (
+          <Card style={{marginBottom:0,borderColor:`${G.coral}40`}}>
+            <CLabel color={G.coral}>Add a Competitor Account</CLabel>
+            <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+              <input value={handle} onChange={e=>setHandle(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addCompetitor()}
+                placeholder="@handle or full TikTok / Instagram URL"
+                style={{flex:1,minWidth:200,background:G.card2,border:`1px solid ${G.border}`,borderRadius:10,padding:'12px 16px',color:G.text,fontSize:14,outline:'none',fontFamily:'inherit'}}/>
+              <select value={platform} onChange={e=>setPlatform(e.target.value)}
+                style={{background:G.card2,border:`1px solid ${G.border}`,borderRadius:10,padding:'12px 14px',color:G.text,fontSize:14,outline:'none',fontFamily:'inherit',cursor:'pointer'}}>
+                <option value="tiktok">TikTok</option>
+                <option value="instagram">Instagram</option>
+              </select>
+            </div>
+            <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:12}}>
+              <span style={{fontSize:12,color:G.muted}}>Videos to scrape:</span>
+              {[10,20,30,50].map(n=>(
+                <button key={n} onClick={()=>setLimit(n)}
+                  style={{background:limit===n?`${G.coral}18`:'transparent',border:`1px solid ${limit===n?G.coral:G.dim}`,borderRadius:20,padding:'4px 12px',fontSize:12,color:limit===n?G.coral:G.muted,cursor:'pointer',fontFamily:'inherit'}}>{n}</button>
+              ))}
+            </div>
+            {addErr&&<div style={{color:G.coral,fontSize:12,marginBottom:10}}>⚠ {addErr}</div>}
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={addCompetitor} disabled={addBusy}
+                style={{background:addBusy?G.card2:G.coral,border:'none',borderRadius:10,padding:'10px 20px',color:addBusy?G.muted:'#000',fontWeight:800,fontSize:13,cursor:addBusy?'not-allowed':'pointer',fontFamily:'inherit'}}>
+                {addBusy?'Adding...':'Add Competitor →'}
+              </button>
+              <button onClick={()=>{setAdding(false);setHandle('');setAddErr('');}}
+                style={{background:'transparent',border:`1px solid ${G.border}`,borderRadius:10,padding:'10px 18px',color:G.muted,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>
+                Cancel
+              </button>
+            </div>
+          </Card>
+        )}
+      </div>
+
+      {busy&&<div style={{color:G.muted,fontSize:13}}>Loading...</div>}
+      {!busy&&competitors.length===0&&(
+        <Card><div style={{textAlign:'center',padding:'50px 20px'}}>
+          <Brain s={52}/>
+          <div style={{color:G.dim,fontSize:13,lineHeight:1.9,marginTop:20}}>
+            No competitors tracked yet<br/>
+            Add a handle and Reconexus will scrape their top videos
+          </div>
+        </div></Card>
+      )}
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(290px,1fr))',gap:14,marginTop:adding?14:0}}>
+        {competitors.map(c=>{
+          const isScraping=!!scraping[c.id];
+          return (
+            <Card key={c.id} style={{cursor:'pointer',transition:'border-color .15s',borderColor:isScraping?`${G.coral}50`:G.border}}
+              onClick={()=>!isScraping&&openCompetitor(c)}>
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14}}>
+                <div>
+                  <div style={{fontSize:16,fontWeight:800,color:G.text,marginBottom:5}}>{c.handle}</div>
+                  <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:6,background:c.platform==='tiktok'?`${G.cyan}18`:`${G.purple}18`,border:`1px solid ${c.platform==='tiktok'?G.cyan:G.purple}30`,color:c.platform==='tiktok'?G.cyan:G.purple,textTransform:'capitalize'}}>{c.platform}</span>
+                </div>
+                <div style={{width:36,height:36,borderRadius:'50%',background:`${G.coral}14`,border:`1px solid ${G.coral}30`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <NIcon n="comp" sz={16} col={G.coral}/>
+                </div>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}}>
+                {[
+                  {l:'Videos',v:c.videoCount||0,c:G.cyan},
+                  {l:'Avg Views',v:c.avgViews?fmt(c.avgViews):'—',c:G.gold},
+                  {l:'Top Video',v:c.topVideoViews?fmt(c.topVideoViews):'—',c:G.green},
+                  {l:'Last Scraped',v:c.last_scraped_at?new Date(c.last_scraped_at).toLocaleDateString('en-GB'):'Never',c:G.muted},
+                ].map(s=>(
+                  <div key={s.l} style={{background:G.card2,borderRadius:8,padding:'10px 12px'}}>
+                    <div style={{fontFamily:"'Nunito',sans-serif",fontSize:16,fontWeight:800,color:s.c}}>{s.v}</div>
+                    <div style={{fontSize:10,color:G.muted,textTransform:'uppercase',letterSpacing:.5,marginTop:3}}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+              <button onClick={e=>{e.stopPropagation();!isScraping&&startScrape(c);}} disabled={isScraping}
+                style={{width:'100%',background:isScraping?G.card2:`${G.coral}14`,border:`1px solid ${isScraping?G.border:`${G.coral}40`}`,borderRadius:8,padding:'9px',color:isScraping?G.muted:G.coral,fontSize:12,fontWeight:700,cursor:isScraping?'not-allowed':'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+                {isScraping?<><span style={{width:6,height:6,borderRadius:'50%',background:G.coral,display:'inline-block',animation:'pulse 1s infinite'}}/>Scraping...</>:(c.videoCount>0?'Refresh →':'Scrape Now →')}
+              </button>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ─── PLACEHOLDERS ───────────────────────────────────────────────────────── */
 function Placeholder({ color, label, desc }) {
   return (
@@ -648,7 +909,7 @@ export default function App() {
           {sec==="analyse" && <Analyse/>}
           {sec==="channel" && <Placeholder color={G.green}  label="my channel"   desc={"Coming next build\nWill scrape @allianzhousinguk and score your last 30 videos"}/>}
           {sec==="intel"   && <Placeholder color={G.gold}   label="intelligence" desc={"Reconexus builds pattern memory from every video you analyse\nAnalyse more videos to feed the engine"}/>}
-          {sec==="comp"    && <Placeholder color={G.coral}  label="competitors"  desc={"Add competitor accounts and Reconexus will scrape their top videos\nSurfaces what works so you can adapt it"}/>}
+          {sec==="comp"    && <Competitors/>}
           {sec==="vault"   && <Vault/>}
           {sec==="chat"    && <ChatReconexus/>}
         </main>
