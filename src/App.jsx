@@ -91,7 +91,7 @@ function Header({ title, sub }) {
       </div>
       <div style={{display:"flex",alignItems:"center",gap:8,background:G.card,border:`1px solid ${G.border}`,borderRadius:20,padding:"7px 14px"}}>
         <div style={{width:8,height:8,borderRadius:"50%",background:G.green,animation:"pulse 2s infinite"}}/>
-        <span style={{fontSize:11,color:G.muted,fontFamily:"'Courier New',monospace"}}>LIVE</span>
+        <span style={{fontSize:11,color:G.muted,fontFamily:"'Outfit',sans-serif"}}>LIVE</span>
       </div>
     </div>
   );
@@ -103,7 +103,7 @@ function Stat({ label, val, sub, color, badge }) {
     <div style={{flex:1,minWidth:140,background:G.card,border:`1px solid ${G.border}`,borderRadius:16,padding:"20px 22px",position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:color,borderRadius:"16px 16px 0 0",opacity:.7}}/>
       <div style={{fontSize:11,color:G.muted,textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:14}}>{label}</div>
-      <div style={{fontFamily:"'Courier New',Courier,monospace",fontSize:36,fontWeight:900,color:G.text,lineHeight:1,marginBottom:10}}>{val}</div>
+      <div style={{fontFamily:"'Outfit',sans-serif",fontSize:36,fontWeight:900,color:G.text,lineHeight:1,marginBottom:10}}>{val}</div>
       {badge && <div style={{display:"inline-flex",alignItems:"center",gap:4,background:`${color}18`,border:`1px solid ${color}30`,borderRadius:20,padding:"3px 10px"}}>
         <span style={{color,fontSize:11,fontWeight:700}}>{badge}</span>
       </div>}
@@ -162,7 +162,7 @@ function Donut({ segs, size = 140, val, lbl }) {
         })}
       </svg>
       <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-        <div style={{fontFamily:"'Courier New',monospace",fontSize:22,fontWeight:900,color:G.text}}>{val}</div>
+        <div style={{fontFamily:"'Outfit',sans-serif",fontSize:22,fontWeight:900,color:G.text}}>{val}</div>
         <div style={{fontSize:9,color:G.muted,textTransform:"uppercase",letterSpacing:1,marginTop:2}}>{lbl}</div>
       </div>
     </div>
@@ -175,7 +175,7 @@ function Bar({ label, score, color }) {
     <div style={{marginBottom:10}}>
       <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
         <span style={{color:G.muted,fontSize:12}}>{label}</span>
-        <span style={{color,fontSize:12,fontWeight:700,fontFamily:"'Courier New',monospace"}}>{score}/10</span>
+        <span style={{color,fontSize:12,fontWeight:700,fontFamily:"'Outfit',sans-serif"}}>{score}/10</span>
       </div>
       <div style={{background:G.card2,borderRadius:4,height:5,overflow:"hidden"}}>
         <div style={{width:`${score*10}%`,height:"100%",background:color,borderRadius:4,opacity:.85}}/>
@@ -228,7 +228,7 @@ function Home() {
               <div key={p.l} style={{display:"flex",alignItems:"center",gap:8}}>
                 <div style={{width:9,height:9,borderRadius:"50%",background:p.c}}/>
                 <span style={{color:G.muted,fontSize:12,flex:1}}>{p.l}</span>
-                <span style={{color:G.text,fontSize:14,fontWeight:700,fontFamily:"'Courier New',monospace"}}>{p.v}</span>
+                <span style={{color:G.text,fontSize:14,fontWeight:700,fontFamily:"'Outfit',sans-serif"}}>{p.v}</span>
               </div>
             ))}
           </div>
@@ -239,7 +239,7 @@ function Home() {
         <CLabel>Recent Analyses</CLabel>
         {busy && <div style={{color:G.muted,fontSize:13,padding:"20px 0"}}>Loading...</div>}
         {!busy && rows.length===0 && (
-          <div style={{color:G.dim,fontSize:13,textAlign:"center",padding:"32px 0",fontFamily:"'Courier New',monospace"}}>
+          <div style={{color:G.dim,fontSize:13,textAlign:"center",padding:"32px 0",fontFamily:"'Outfit',sans-serif"}}>
             No analyses yet — go to Analyse tab and paste a URL
           </div>
         )}
@@ -260,10 +260,10 @@ function Home() {
                     <div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.url}</div>
                   </td>
                   <td style={{padding:"13px 16px 13px 0"}}>
-                    <span style={{fontFamily:"'Courier New',monospace",fontSize:16,fontWeight:900,color:G.gold}}>{a.analysis?.viralScore||"—"}</span>
+                    <span style={{fontFamily:"'Outfit',sans-serif",fontSize:16,fontWeight:900,color:G.gold}}>{a.analysis?.viralScore||"—"}</span>
                     <span style={{color:G.muted,fontSize:11}}> /10</span>
                   </td>
-                  <td style={{padding:"13px 16px 13px 0",fontFamily:"'Courier New',monospace",fontSize:15,fontWeight:700,color:G.purple}}>{a.analysis?.scripts?.length||0}</td>
+                  <td style={{padding:"13px 16px 13px 0",fontFamily:"'Outfit',sans-serif",fontSize:15,fontWeight:700,color:G.purple}}>{a.analysis?.scripts?.length||0}</td>
                   <td style={{padding:"13px 0",color:G.muted,fontSize:11}}>{new Date(a.created_at).toLocaleDateString("en-GB")}</td>
                 </tr>
               ))}
@@ -324,13 +324,13 @@ function Analyse() {
             {busy?"Analysing...":"Analyse →"}
           </button>
         </div>
-        {err && <div style={{color:G.coral,fontSize:12,marginTop:10,fontFamily:"'Courier New',monospace"}}>⚠ {err}</div>}
+        {err && <div style={{color:G.coral,fontSize:12,marginTop:10,fontFamily:"'Outfit',sans-serif"}}>⚠ {err}</div>}
         {busy && (
           <div style={{display:"flex",gap:8,marginTop:16,flexWrap:"wrap"}}>
             {PH.map(p=>{
               const ci=PO.indexOf(phase),ti=PO.indexOf(p.key),on=p.key===phase,dn=ti<ci;
               return (
-                <div key={p.key} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 13px",borderRadius:20,background:on?`${G.cyan}14`:G.card2,border:`1px solid ${on?G.cyan:G.border}`,fontSize:11,color:on?G.cyan:dn?"#2a2a28":G.dim,fontFamily:"'Courier New',monospace"}}>
+                <div key={p.key} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 13px",borderRadius:20,background:on?`${G.cyan}14`:G.card2,border:`1px solid ${on?G.cyan:G.border}`,fontSize:11,color:on?G.cyan:dn?"#2a2a28":G.dim,fontFamily:"'Outfit',sans-serif"}}>
                   {on&&<span style={{width:6,height:6,borderRadius:"50%",background:G.cyan,display:"inline-block",animation:"pulse 1s infinite"}}/>}
                   {dn?"✓ ":""}{p.label}
                 </div>
@@ -346,7 +346,7 @@ function Analyse() {
           <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:16}}>
             {[{l:"Views",v:vd.views,c:G.cyan},{l:"Likes",v:vd.likes,c:G.gold},{l:"Comments",v:vd.comments,c:G.green},{l:"Shares",v:vd.shares,c:G.purple},{l:"Duration",v:vd.duration,c:G.coral}].map(x=>(
               <div key={x.l} style={{flex:1,minWidth:90,background:G.card,border:`1px solid ${G.border}`,borderTop:`2px solid ${x.c}`,borderRadius:"0 0 12px 12px",padding:"16px 14px",textAlign:"center"}}>
-                <div style={{fontFamily:"'Courier New',monospace",fontSize:22,fontWeight:900,color:x.c}}>{typeof x.v==="number"?x.v.toLocaleString():x.v}</div>
+                <div style={{fontFamily:"'Outfit',sans-serif",fontSize:22,fontWeight:900,color:x.c}}>{typeof x.v==="number"?x.v.toLocaleString():x.v}</div>
                 <div style={{color:G.muted,fontSize:10,textTransform:"uppercase",letterSpacing:"1.5px",marginTop:5}}>{x.l}</div>
               </div>
             ))}
@@ -366,7 +366,7 @@ function Analyse() {
             <CLabel color={G.gold}>Viral Performance Scores</CLabel>
             <div style={{display:"flex",gap:14,flexWrap:"wrap",marginBottom:18}}>
               <div style={{background:`${G.gold}14`,border:`1px solid ${G.gold}35`,borderRadius:14,padding:"20px 24px",textAlign:"center",minWidth:110}}>
-                <div style={{fontFamily:"'Courier New',monospace",fontSize:48,fontWeight:900,color:G.gold,lineHeight:1}}>{an.viralScore}</div>
+                <div style={{fontFamily:"'Outfit',sans-serif",fontSize:48,fontWeight:900,color:G.gold,lineHeight:1}}>{an.viralScore}</div>
                 <div style={{color:G.muted,fontSize:10,textTransform:"uppercase",letterSpacing:1,marginTop:6}}>Viral Score</div>
               </div>
               <div style={{flex:1,minWidth:180,paddingTop:4}}>
@@ -388,7 +388,7 @@ function Analyse() {
             <div style={{color:"#aaa",fontSize:13,lineHeight:1.8,marginBottom:16}}>{an.audienceInsight}</div>
             {an.whyItWorked.map((r,i)=>(
               <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 0",borderBottom:i<an.whyItWorked.length-1?`1px solid ${G.border}`:"none"}}>
-                <span style={{fontFamily:"'Courier New',monospace",fontSize:11,color:G.cyan,flexShrink:0}}>{String(i+1).padStart(2,"0")}</span>
+                <span style={{fontFamily:"'Outfit',sans-serif",fontSize:11,color:G.cyan,flexShrink:0}}>{String(i+1).padStart(2,"0")}</span>
                 <div style={{color:"#ccc",fontSize:13,lineHeight:1.6}}>{r}</div>
               </div>
             ))}
@@ -400,7 +400,7 @@ function Analyse() {
 
           {/* Scripts */}
           <div style={{marginBottom:8}}>
-            <div style={{color:G.muted,fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:12,fontFamily:"'Courier New',monospace"}}>Scripts — Ready to Film</div>
+            <div style={{color:G.muted,fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:12,fontFamily:"'Outfit',sans-serif"}}>Scripts — Ready to Film</div>
             {an.scripts.map((sc,i)=>(
               <Card key={i} style={{marginBottom:12,borderLeft:`3px solid ${G.purple}`,borderRadius:"0 12px 12px 0"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
@@ -429,7 +429,7 @@ function Analyse() {
             <CLabel color={G.green}>Standalone Hooks — Swipe File</CLabel>
             {an.topHooks.map((h,i)=>(
               <div key={i} style={{background:G.card2,borderRadius:8,padding:"12px 14px",marginBottom:8,fontSize:14,color:"#ddd",lineHeight:1.5}}>
-                <span style={{fontFamily:"'Courier New',monospace",fontSize:11,color:G.green,marginRight:8}}>{String(i+1).padStart(2,"0")}</span>"{h}"
+                <span style={{fontFamily:"'Outfit',sans-serif",fontSize:11,color:G.green,marginRight:8}}>{String(i+1).padStart(2,"0")}</span>"{h}"
               </div>
             ))}
           </Card>
@@ -460,8 +460,8 @@ function Analyse() {
 
       {!vd && !busy && (
         <div style={{textAlign:"center",padding:"80px 20px"}}>
-          <div style={{fontFamily:"'Courier New',monospace",fontSize:72,color:G.gold,opacity:.05,lineHeight:1,marginBottom:24}}>⚡</div>
-          <div style={{color:G.dim,fontSize:13,lineHeight:2.2,fontFamily:"'Courier New',monospace"}}>
+          <div style={{fontFamily:"'Outfit',sans-serif",fontSize:72,color:G.gold,opacity:.05,lineHeight:1,marginBottom:24}}>⚡</div>
+          <div style={{color:G.dim,fontSize:13,lineHeight:2.2,fontFamily:"'Outfit',sans-serif"}}>
             paste any viral tiktok or instagram url<br/>
             reconexus reverse-engineers it<br/>
             and writes you 3 scripts to film
@@ -498,7 +498,7 @@ function Vault() {
         ))}
       </div>
       {busy && <div style={{color:G.muted,fontSize:13}}>Loading...</div>}
-      {!busy && scripts.length===0 && <div style={{color:G.dim,fontSize:13,textAlign:"center",padding:"50px 0",fontFamily:"'Courier New',monospace"}}>no scripts yet — analyse a viral video to generate scripts</div>}
+      {!busy && scripts.length===0 && <div style={{color:G.dim,fontSize:13,textAlign:"center",padding:"50px 0",fontFamily:"'Outfit',sans-serif"}}>no scripts yet — analyse a viral video to generate scripts</div>}
       {scripts.map(s=>(
         <Card key={s.id} style={{marginBottom:12,borderLeft:`3px solid ${s.status==="used"?G.dim:G.purple}`,borderRadius:"0 12px 12px 0"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
@@ -523,9 +523,9 @@ function Placeholder({ color, label, desc }) {
   return (
     <Card>
       <div style={{textAlign:"center",padding:"40px 20px"}}>
-        <div style={{fontFamily:"'Courier New',monospace",fontSize:11,color:`${color}80`,textTransform:"uppercase",letterSpacing:"2px",marginBottom:20}}>// reconexus — {label}</div>
+        <div style={{fontFamily:"'Outfit',sans-serif",fontSize:11,color:`${color}80`,textTransform:"uppercase",letterSpacing:"2px",marginBottom:20}}>// reconexus — {label}</div>
         <Brain s={52}/>
-        <div style={{color:G.dim,fontSize:13,lineHeight:1.9,marginTop:20,fontFamily:"'Courier New',monospace"}}>{desc}</div>
+        <div style={{color:G.dim,fontSize:13,lineHeight:1.9,marginTop:20,fontFamily:"'Outfit',sans-serif"}}>{desc}</div>
       </div>
     </Card>
   );
@@ -546,9 +546,10 @@ export default function App() {
   const meta = PAGE_META[sec];
 
   return (
-    <div style={{background:G.bg,minHeight:"100vh",display:"flex",fontFamily:"'Inter',system-ui,sans-serif",color:G.text}}>
+    <div style={{background:G.bg,minHeight:"100vh",display:"flex",fontFamily:"'Outfit',sans-serif",color:G.text}}>
       <style>{`
-        *{box-sizing:border-box;margin:0;padding:0;}
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0;font-family:'Outfit',sans-serif;}
         input::placeholder{color:${G.dim};}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
         ::-webkit-scrollbar{width:4px;background:${G.bg};}
