@@ -39,7 +39,7 @@ exports.handler = async (event) => {
   if (competitor.platform === 'tiktok') {
     actorId = 'clockworks~free-tiktok-scraper';
     input = {
-      profiles: [`https://www.tiktok.com/@${handle}`],
+      profiles: [handle],
       resultsPerPage: cap,
       shouldDownloadVideos: false,
       shouldDownloadCovers: false,

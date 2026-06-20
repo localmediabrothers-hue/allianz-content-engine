@@ -26,12 +26,12 @@ function normalizeVideo(v, platform) {
   } else {
     const sc = v.shortCode || v.shortcode || '';
     return {
-      url: v.url || (sc ? `https://instagram.com/p/${sc}` : ''),
+      url: v.url || (sc ? `https://instagram.com/reel/${sc}` : ''),
       caption: v.caption || v.alt || '',
-      views: v.videoPlayCount || v.playsCount || 0,
+      views: v.videoViewCount || v.videoPlayCount || 0,
       likes: v.likesCount || v.likes || 0,
       comments: v.commentsCount || v.comments || 0,
-      shares: 0,
+      shares: v.sharesCount || 0,
       hashtags: v.hashtags || [],
       duration: `${v.videoDuration || 0}s`,
       posted_at: v.timestamp || null,
@@ -78,12 +78,16 @@ exports.handler = async (event) => {
     raw_apify_data: item,
   }));
 
-  await supabase.from('competitor_videos').delete()
-    .eq('competitor_id', competitorId)
-    .eq('workspace_id', ALLIANZ_WORKSPACE_ID);
-
-  const { error: insertErr } = await supabase.from('competitor_videos').insert(rows);
-  if (insertErr) console.error('competitor_videos insert error:', insertErr.message);
+  const { data: inserted, error: insertErr } = await supabase.from('competitor_videos').insert(rows).select('id');
+  if (insertErr) {
+    console.error('competitor_videos insert error:', insertErr.message);
+  } else {
+    const newIds = (inserted || []).map(r => r.id);
+    await supabase.from('competitor_videos').delete()
+      .eq('competitor_id', competitorId)
+      .eq('workspace_id', ALLIANZ_WORKSPACE_ID)
+      .not('id', 'in', `(${newIds.join(',')})`);
+  }
 
   await supabase.from('competitors')
     .update({ last_scraped_at: new Date().toISOString() })
