@@ -90,7 +90,7 @@ exports.handler = async (event) => {
   }
 
   await supabase.from('competitors')
-    .update({ last_scraped_at: new Date().toISOString() })
+    .update({ last_scraped: new Date().toISOString(), total_videos_scraped: rows.length })
     .eq('id', competitorId);
 
   const videos = items

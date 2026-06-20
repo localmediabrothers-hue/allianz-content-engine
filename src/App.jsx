@@ -841,7 +841,7 @@ function Competitors() {
                   {l:'Videos',v:c.videoCount||0,c:G.cyan},
                   {l:'Avg Views',v:c.avgViews?fmt(c.avgViews):'—',c:G.gold},
                   {l:'Top Video',v:c.topVideoViews?fmt(c.topVideoViews):'—',c:G.green},
-                  {l:'Last Scraped',v:c.last_scraped_at?new Date(c.last_scraped_at).toLocaleDateString('en-GB'):'Never',c:G.muted},
+                  {l:'Last Scraped',v:c.last_scraped?new Date(c.last_scraped).toLocaleDateString('en-GB'):'Never',c:G.muted},
                 ].map(s=>(
                   <div key={s.l} style={{background:G.card2,borderRadius:8,padding:'10px 12px'}}>
                     <div style={{fontFamily:"'Nunito',sans-serif",fontSize:16,fontWeight:800,color:s.c}}>{s.v}</div>
