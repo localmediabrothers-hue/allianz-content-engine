@@ -118,8 +118,8 @@ function Stat({ label, val, sub, color, badge }) {
 }
 
 /* ─── Card wrapper ───────────────────────────────────────────────────────── */
-function Card({ children, style = {} }) {
-  return <div style={{background:G.card,border:`1px solid ${G.border}`,borderRadius:16,padding:"20px 22px",...style}}>{children}</div>;
+function Card({ children, style = {}, onClick }) {
+  return <div onClick={onClick} style={{background:G.card,border:`1px solid ${G.border}`,borderRadius:16,padding:"20px 22px",...style}}>{children}</div>;
 }
 function CLabel({ children, color }) {
   return <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"1.5px",color:color||G.muted,marginBottom:14}}>{children}</div>;
