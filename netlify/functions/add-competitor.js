@@ -51,7 +51,12 @@ exports.handler = async (event) => {
     .select()
     .single();
 
-  if (error) return { statusCode: 500, headers: cors, body: JSON.stringify({ error: error.message }) };
+  if (error) {
+    if (error.code === '23505') {
+      return { statusCode: 409, headers: cors, body: JSON.stringify({ error: `${handle} is already being tracked` }) };
+    }
+    return { statusCode: 500, headers: cors, body: JSON.stringify({ error: error.message }) };
+  }
 
   return { statusCode: 200, headers: cors, body: JSON.stringify({ competitor: data }) };
 };
