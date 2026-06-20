@@ -19,9 +19,6 @@ function normalizeVideo(v, platform) {
       likes: v.diggCount || (v.stats && v.stats.diggCount) || 0,
       comments: v.commentCount || (v.stats && v.stats.commentCount) || 0,
       shares: v.shareCount || (v.stats && v.stats.shareCount) || 0,
-      hashtags: (v.hashtags || []).map(h => h.name || h),
-      duration: `${(v.videoMeta && v.videoMeta.duration) || v.duration || 0}s`,
-      posted_at: v.createTime ? new Date(v.createTime * 1000).toISOString() : null,
     };
   } else {
     const sc = v.shortCode || v.shortcode || '';
@@ -32,9 +29,6 @@ function normalizeVideo(v, platform) {
       likes: v.likesCount || v.likes || 0,
       comments: v.commentsCount || v.comments || 0,
       shares: v.sharesCount || 0,
-      hashtags: v.hashtags || [],
-      duration: `${v.videoDuration || 0}s`,
-      posted_at: v.timestamp || null,
     };
   }
 }
@@ -68,21 +62,29 @@ exports.handler = async (event) => {
   if (!items.length) return { statusCode: 200, headers: cors, body: JSON.stringify({ videos: [], total: 0 }) };
 
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+  const scrapedAt = new Date().toISOString();
 
-  const rows = items.map(item => ({
+  const normalized = items.map(item => normalizeVideo(item, platform));
+  const rows = items.map((item, i) => ({
     workspace_id: ALLIANZ_WORKSPACE_ID,
     competitor_id: competitorId,
-    platform,
-    url: normalizeVideo(item, platform).url,
-    video_data: normalizeVideo(item, platform),
-    raw_apify_data: item,
+    url: normalized[i].url,
+    caption: normalized[i].caption,
+    views: normalized[i].views,
+    likes: normalized[i].likes,
+    comments: normalized[i].comments,
+    shares: normalized[i].shares,
+    raw_data: item,
+    scraped_at: scrapedAt,
   }));
 
   const { data: inserted, error: insertErr } = await supabase.from('competitor_videos').insert(rows).select('id');
   if (insertErr) {
-    console.error('competitor_videos insert error:', insertErr.message);
-  } else {
-    const newIds = (inserted || []).map(r => r.id);
+    return { statusCode: 500, headers: cors, body: JSON.stringify({ error: `Save failed: ${insertErr.message}` }) };
+  }
+
+  const newIds = (inserted || []).map(r => r.id);
+  if (newIds.length) {
     await supabase.from('competitor_videos').delete()
       .eq('competitor_id', competitorId)
       .eq('workspace_id', ALLIANZ_WORKSPACE_ID)
@@ -90,12 +92,10 @@ exports.handler = async (event) => {
   }
 
   await supabase.from('competitors')
-    .update({ last_scraped: new Date().toISOString(), total_videos_scraped: rows.length })
+    .update({ last_scraped: scrapedAt, total_videos_scraped: rows.length })
     .eq('id', competitorId);
 
-  const videos = items
-    .map(item => normalizeVideo(item, platform))
-    .sort((a, b) => (b.views || 0) - (a.views || 0));
+  const videos = normalized.sort((a, b) => (b.views || 0) - (a.views || 0));
 
   return { statusCode: 200, headers: cors, body: JSON.stringify({ videos, total: videos.length }) };
 };

@@ -736,7 +736,7 @@ function Competitors() {
           </div></Card>
         )}
         {videos.map((v,i)=>{
-          const vd = v.video_data || v;
+          const vd = v;
           return (
             <Card key={v.id||i} style={{marginBottom:10,borderLeft:`3px solid ${i===0?G.gold:i<3?G.cyan:G.border}`,borderRadius:'0 12px 12px 0'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>

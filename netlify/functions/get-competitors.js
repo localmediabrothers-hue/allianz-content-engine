@@ -25,16 +25,16 @@ exports.handler = async (event) => {
   const withStats = await Promise.all((competitors || []).map(async (c) => {
     const { data: videos } = await supabase
       .from('competitor_videos')
-      .select('video_data')
+      .select('views')
       .eq('competitor_id', c.id)
       .eq('workspace_id', ALLIANZ_WORKSPACE_ID);
 
     const count = (videos || []).length;
     const avgViews = count > 0
-      ? Math.round((videos || []).reduce((s, v) => s + (v.video_data?.views || 0), 0) / count)
+      ? Math.round((videos || []).reduce((s, v) => s + (v.views || 0), 0) / count)
       : 0;
     const topVideoViews = count > 0
-      ? Math.max(...(videos || []).map(v => v.video_data?.views || 0))
+      ? Math.max(...(videos || []).map(v => v.views || 0))
       : 0;
 
     return { ...c, videoCount: count, avgViews, topVideoViews };

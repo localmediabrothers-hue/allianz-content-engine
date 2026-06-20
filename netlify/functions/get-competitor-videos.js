@@ -20,14 +20,14 @@ exports.handler = async (event) => {
 
   const { data, error } = await supabase
     .from('competitor_videos')
-    .select('id, platform, url, video_data, created_at')
+    .select('id, url, caption, views, likes, comments, shares, scraped_at')
     .eq('competitor_id', competitorId)
     .eq('workspace_id', ALLIANZ_WORKSPACE_ID)
-    .order('created_at', { ascending: false });
+    .order('scraped_at', { ascending: false });
 
   if (error) return { statusCode: 500, headers: cors, body: JSON.stringify({ error: error.message }) };
 
-  const sorted = (data || []).sort((a, b) => (b.video_data?.views || 0) - (a.video_data?.views || 0));
+  const sorted = (data || []).sort((a, b) => (b.views || 0) - (a.views || 0));
 
   return { statusCode: 200, headers: cors, body: JSON.stringify({ videos: sorted }) };
 };
