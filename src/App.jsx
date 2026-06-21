@@ -675,7 +675,7 @@ function Competitors() {
           body: JSON.stringify({ runId, datasetId, competitorId, platform: plt }),
         });
         const d = await res.json();
-        if (!res.ok) break;
+        if (!res.ok) { alert(d.error || 'Scrape failed'); break; }
         if (!d.pending) {
           setScraping(prev => { const n={...prev}; delete n[competitorId]; return n; });
           await load();

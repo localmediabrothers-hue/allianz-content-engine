@@ -57,9 +57,15 @@ exports.handler = async (event) => {
 
   const itemsRes = await fetch(`${APIFY_BASE}/datasets/${datasetId}/items?token=${token}`);
   if (!itemsRes.ok) return { statusCode: 502, headers: cors, body: JSON.stringify({ error: 'Dataset fetch failed' }) };
-  const items = await itemsRes.json();
+  const rawItems = await itemsRes.json();
 
-  if (!items.length) return { statusCode: 200, headers: cors, body: JSON.stringify({ videos: [], total: 0 }) };
+  const errorItem = rawItems.find(item => item.error);
+  const items = rawItems.filter(item => !item.error);
+
+  if (!items.length) {
+    if (errorItem) return { statusCode: 404, headers: cors, body: JSON.stringify({ error: errorItem.error || 'Profile not found' }) };
+    return { statusCode: 200, headers: cors, body: JSON.stringify({ videos: [], total: 0 }) };
+  }
 
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
   const scrapedAt = new Date().toISOString();
