@@ -101,11 +101,12 @@ Return ONLY this JSON structure (fill in all fields):
   "warningSignals": ["<warning 1 if any>"]
 }`;
 
-  const response = await anthropic.messages.create({
+  const stream = anthropic.messages.stream({
     model: 'claude-sonnet-4-6',
     max_tokens: 4096,
     messages: [{ role: 'user', content: prompt }],
   });
+  const response = await stream.finalMessage();
 
   const text = response.content[0].text.trim();
   const jsonStart = text.indexOf('{');
