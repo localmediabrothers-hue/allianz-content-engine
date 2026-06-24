@@ -41,6 +41,7 @@ exports.handler = async (event) => {
     input = {
       profiles: [handle],
       resultsPerPage: cap,
+      profileSorting: 'popular',
       shouldDownloadVideos: false,
       shouldDownloadCovers: false,
     };
