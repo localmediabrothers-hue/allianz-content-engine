@@ -302,15 +302,29 @@ function Analyse() {
       if (!s.ok) throw new Error(sd.error||"Failed to start");
       const {runId,datasetId,platform:plat,url:cu} = sd;
       let att=0;
+      let analysisId=null;
       while (att<40) {
         await new Promise(r=>setTimeout(r,5000));
         const r = await fetch("/api/result",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({runId,datasetId,platform:plat,url:cu})});
         const rd = await r.json();
         if (!r.ok) throw new Error(rd.error||"Analysis failed");
-        if (!rd.pending) { setPhase("analysing"); await new Promise(r=>setTimeout(r,500)); setVd(rd.videoData); setAn(rd.analysis); setPhase("done"); break; }
+        if (!rd.pending) { setVd(rd.videoData); setPhase("analysing"); analysisId=rd.analysisId; break; }
         att++;
       }
       if (att>=40) throw new Error("Timed out — scraper took too long");
+      if (!analysisId) throw new Error("No analysis ID returned");
+
+      att=0;
+      while (att<40) {
+        await new Promise(r=>setTimeout(r,5000));
+        const r = await fetch(`/api/get-analysis-status?id=${analysisId}`);
+        const rd = await r.json();
+        if (!r.ok) throw new Error(rd.error||"Analysis lookup failed");
+        if (rd.status==="done") { setAn(rd.analysis); setPhase("done"); break; }
+        if (rd.status==="failed") throw new Error("Claude analysis failed — try again");
+        att++;
+      }
+      if (att>=40) throw new Error("Timed out — analysis took too long");
     } catch(e) { setErr(e.message); setPhase("idle"); }
     setBusy(false);
   }
