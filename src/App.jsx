@@ -39,6 +39,7 @@ const PATHS = {
   vault:   ["M12 2L2 7l10 5 10-5-10-5","M2 17l10 5 10-5","M2 12l10 5 10-5"],
   chat:    ["M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"],
   plan:    ["M8 6h13","M8 12h13","M8 18h13","M3 6h.01","M3 12h.01","M3 18h.01"],
+  rooms:   ["M3 21h18","M5 21V7l8-4v18","M19 21V11l-6-4","M9 9v.01","M9 12v.01","M9 15v.01","M9 18v.01"],
 };
 function NIcon({ n, sz = 17, col }) {
   return (
@@ -53,6 +54,7 @@ const NAV = [
   { id:"home",    label:"Dashboard",    n:"home",    c:G.gold   },
   { id:"analyse", label:"Analyse",      n:"analyse", c:G.cyan   },
   { id:"plan",    label:"Content Plan", n:"plan",    c:G.green  },
+  { id:"rooms",   label:"Rooms",        n:"rooms",   c:G.cyan   },
   { id:"channel", label:"My Channel",   n:"channel", c:G.green  },
   { id:"intel",   label:"Intelligence", n:"intel",   c:G.gold   },
   { id:"comp",    label:"Competitors",  n:"comp",    c:G.coral  },
@@ -1089,23 +1091,179 @@ function Competitors({ onAnalyseVideo }) {
   );
 }
 
+/* ─── ROOMS ──────────────────────────────────────────────────────────────── */
+function Rooms() {
+  const [rooms, setRooms] = useState([]);
+  const [busy, setBusy] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [desc, setDesc] = useState('');
+  const [saveBusy, setSaveBusy] = useState(false);
+
+  useEffect(() => { load(); }, []);
+
+  async function load() {
+    setBusy(true);
+    try {
+      const res = await fetch('/api/get-rooms');
+      const d = await res.json();
+      setRooms(d.rooms || []);
+    } catch {}
+    setBusy(false);
+  }
+
+  async function addRoom() {
+    if (!name.trim()) return;
+    setSaveBusy(true);
+    try {
+      const res = await fetch('/api/create-room', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, description: desc }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Failed');
+      setName(''); setDesc(''); setAdding(false);
+      await load();
+    } catch (e) { alert(e.message); }
+    setSaveBusy(false);
+  }
+
+  async function toggleStatus(room) {
+    const newStatus = room.status === 'needs_filling' ? 'filled' : 'needs_filling';
+    await fetch('/api/update-room', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId: room.id, status: newStatus }),
+    });
+    await load();
+  }
+
+  async function removeRoom(room) {
+    if (!confirm(`Delete "${room.name}"?`)) return;
+    await fetch('/api/delete-room', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId: room.id }),
+    });
+    await load();
+  }
+
+  const needsFilling = rooms.filter(r => r.status === 'needs_filling');
+  const filled = rooms.filter(r => r.status === 'filled');
+
+  return (
+    <div>
+      <div style={{display:'flex',gap:14,marginBottom:20,flexWrap:'wrap'}}>
+        <Stat label="Needs Filling" val={needsFilling.length} color={G.coral} badge={needsFilling.length ? 'Available for matching' : 'All filled'}/>
+        <Stat label="Filled" val={filled.length} color={G.green} sub="tenants moved in"/>
+      </div>
+
+      <div style={{marginBottom:20}}>
+        {!adding ? (
+          <button onClick={() => setAdding(true)}
+            style={{background:`${G.cyan}18`,border:`1px solid ${G.cyan}40`,borderRadius:10,padding:'10px 20px',color:G.cyan,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+            + Add Room
+          </button>
+        ) : (
+          <Card style={{borderColor:`${G.cyan}40`}}>
+            <CLabel color={G.cyan}>Add a Free Room</CLabel>
+            <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+              <input value={name} onChange={e=>setName(e.target.value)}
+                placeholder="e.g. Flat 2A, 64 Coventry Road"
+                style={{flex:'0 0 260px',background:G.card2,border:`1px solid ${G.border}`,borderRadius:10,padding:'12px 16px',color:G.text,fontSize:14,outline:'none',fontFamily:'inherit'}}/>
+              <input value={desc} onChange={e=>setDesc(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addRoom()}
+                placeholder="En-suite, double bed, DSS accepted, move in 48hrs..."
+                style={{flex:1,minWidth:220,background:G.card2,border:`1px solid ${G.border}`,borderRadius:10,padding:'12px 16px',color:G.text,fontSize:14,outline:'none',fontFamily:'inherit'}}/>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={addRoom} disabled={!name.trim()||saveBusy}
+                style={{background:!name.trim()||saveBusy?G.card2:G.cyan,border:'none',borderRadius:10,padding:'10px 20px',color:!name.trim()||saveBusy?G.muted:'#000',fontWeight:800,fontSize:13,cursor:!name.trim()||saveBusy?'not-allowed':'pointer',fontFamily:'inherit'}}>
+                {saveBusy?'Adding...':'Add Room →'}
+              </button>
+              <button onClick={()=>{setAdding(false);setName('');setDesc('');}}
+                style={{background:'transparent',border:`1px solid ${G.border}`,borderRadius:10,padding:'10px 18px',color:G.muted,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+            </div>
+          </Card>
+        )}
+      </div>
+
+      {busy && <div style={{color:G.muted,fontSize:13}}>Loading...</div>}
+      {!busy && rooms.length===0 && (
+        <Card><div style={{textAlign:'center',padding:'50px 20px'}}>
+          <Brain s={52}/>
+          <div style={{color:G.dim,fontSize:13,lineHeight:1.9,marginTop:20}}>
+            No rooms tracked yet<br/>Add every room that's free right now — new ones any time, old ones fall off once filled
+          </div>
+        </div></Card>
+      )}
+
+      {needsFilling.length > 0 && (
+        <div style={{marginBottom:20}}>
+          <CLabel color={G.coral}>Needs Filling</CLabel>
+          {needsFilling.map(r => (
+            <Card key={r.id} style={{marginBottom:10,borderLeft:`3px solid ${G.coral}`,borderRadius:'0 12px 12px 0'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,color:G.text,fontSize:14,marginBottom:5}}>{r.name}</div>
+                  {r.description && <div style={{color:G.muted,fontSize:13,lineHeight:1.5}}>{r.description}</div>}
+                </div>
+                <div style={{display:'flex',gap:6,flexShrink:0}}>
+                  <button onClick={()=>toggleStatus(r)}
+                    style={{background:`${G.green}14`,border:`1px solid ${G.green}40`,borderRadius:7,padding:'6px 12px',color:G.green,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Mark Filled</button>
+                  <button onClick={()=>removeRoom(r)}
+                    style={{background:'transparent',border:`1px solid ${G.dim}`,borderRadius:7,padding:'6px 10px',color:G.muted,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>×</button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {filled.length > 0 && (
+        <div>
+          <CLabel>Filled</CLabel>
+          {filled.map(r => (
+            <Card key={r.id} style={{marginBottom:10,opacity:.6}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,color:'#888',fontSize:14,marginBottom:5}}>{r.name}</div>
+                  {r.description && <div style={{color:G.dim,fontSize:13,lineHeight:1.5}}>{r.description}</div>}
+                </div>
+                <div style={{display:'flex',gap:6,flexShrink:0}}>
+                  <button onClick={()=>toggleStatus(r)}
+                    style={{background:'transparent',border:`1px solid ${G.dim}`,borderRadius:7,padding:'6px 12px',color:G.muted,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Needs Filling Again</button>
+                  <button onClick={()=>removeRoom(r)}
+                    style={{background:'transparent',border:`1px solid ${G.dim}`,borderRadius:7,padding:'6px 10px',color:G.muted,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>×</button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── CONTENT PLAN ───────────────────────────────────────────────────────── */
-function ContentPlan() {
+function ContentPlan({ onGoTo }) {
   const [trips, setTrips] = useState([]);
   const [busy, setBusy] = useState(true);
   const [creating, setCreating] = useState(false);
   const [newDate, setNewDate] = useState('');
   const [newTarget, setNewTarget] = useState(4);
-  const [newRooms, setNewRooms] = useState([{ name: '', description: '' }]);
   const [saveBusy, setSaveBusy] = useState(false);
   const [activeTrip, setActiveTrip] = useState(null);
 
-  // Script picker state
   const [allScripts, setAllScripts] = useState([]);
-  const [scriptsBusy, setScriptsBusy] = useState(false);
+  const [scriptsLoaded, setScriptsLoaded] = useState(false);
+  const [rooms, setRooms] = useState([]);
+  const [roomsLoaded, setRoomsLoaded] = useState(false);
   const [customising, setCustomising] = useState({});
 
-  useEffect(() => { loadTrips(); }, []);
+  // Match proposal state: array of { script, roomId }
+  const [proposal, setProposal] = useState(null);
+  const [manualMode, setManualMode] = useState(false);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+
+  useEffect(() => { loadTrips(); loadScripts(); loadRooms(); }, []);
 
   async function loadTrips() {
     setBusy(true);
@@ -1114,50 +1272,47 @@ function ContentPlan() {
       const d = await res.json();
       const list = d.trips || [];
       setTrips(list);
-      // Auto-open the next upcoming trip
       const today = new Date().toISOString().split('T')[0];
       const next = list.find(t => t.trip_date >= today);
-      if (next && !activeTrip) setActiveTrip(next);
+      setActiveTrip(prev => prev ? (list.find(t => t.id === prev.id) || prev) : (next || null));
     } catch {}
     setBusy(false);
   }
 
   async function loadScripts() {
-    setScriptsBusy(true);
     try {
-      const res = await fetch('/api/get-scripts');
+      const res = await fetch('/api/get-scripts?limit=100');
       const d = await res.json();
       setAllScripts(d.scripts || []);
     } catch {}
-    setScriptsBusy(false);
+    setScriptsLoaded(true);
+  }
+
+  async function loadRooms() {
+    try {
+      const res = await fetch('/api/get-rooms');
+      const d = await res.json();
+      setRooms(d.rooms || []);
+    } catch {}
+    setRoomsLoaded(true);
   }
 
   async function createTrip() {
     if (!newDate) return;
     setSaveBusy(true);
     try {
-      const properties = newRooms.filter(r => r.name.trim());
       const res = await fetch('/api/create-trip', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tripDate: newDate, scriptsTarget: newTarget, properties }),
+        body: JSON.stringify({ tripDate: newDate, scriptsTarget: newTarget }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || 'Failed');
       setCreating(false);
-      setNewDate(''); setNewTarget(4); setNewRooms([{ name: '', description: '' }]);
+      setNewDate(''); setNewTarget(4);
       await loadTrips();
       setActiveTrip(d.trip);
     } catch (e) { alert(e.message); }
     setSaveBusy(false);
-  }
-
-  async function saveRooms(trip) {
-    const properties = newRooms.filter(r => r.name.trim());
-    await fetch('/api/update-trip', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tripId: trip.id, properties }),
-    });
-    await loadTrips();
   }
 
   async function toggleScript(script, tripId) {
@@ -1184,14 +1339,48 @@ function ContentPlan() {
     setCustomising(prev => { const n = { ...prev }; delete n[script.id]; return n; });
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  function roomLabel(room) { return `${room.name}${room.description ? ` — ${room.description}` : ''}`; }
 
+  function buildProposal(scriptsNeeded) {
+    const availableScripts = unassignedScripts.slice(0, scriptsNeeded);
+    const availableRooms = needsFillingRooms.slice(0, scriptsNeeded);
+    const pairs = availableScripts.map((script, i) => ({ script, roomId: availableRooms[i]?.id || null }));
+    setProposal(pairs);
+    setManualMode(false);
+  }
+
+  async function confirmProposal(trip) {
+    if (!proposal) return;
+    setConfirmBusy(true);
+    try {
+      for (const pair of proposal) {
+        await fetch('/api/assign-script-to-trip', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scriptId: pair.script.id, tripId: trip.id }),
+        });
+        const room = rooms.find(r => r.id === pair.roomId);
+        if (room) {
+          await fetch('/api/customise-script', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scriptId: pair.script.id, roomDescription: roomLabel(room) }),
+          });
+        }
+      }
+      setProposal(null);
+      await loadScripts(); await loadTrips();
+    } catch (e) { alert(e.message); }
+    setConfirmBusy(false);
+  }
+
+  const today = new Date().toISOString().split('T')[0];
   const trip = activeTrip ? trips.find(t => t.id === activeTrip.id) || activeTrip : null;
   const daysUntil = trip ? Math.ceil((new Date(trip.trip_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
   const assignedScripts = trip ? (trip.scripts || []) : [];
   const scriptsNeeded = trip ? Math.max(0, (trip.scripts_target || 4) - assignedScripts.length) : 0;
   const unassignedScripts = allScripts.filter(s => !s.trip_id && s.status === 'unused');
-  const rooms = trip?.properties || [];
+  const needsFillingRooms = rooms.filter(r => r.status === 'needs_filling');
+  const dataReady = scriptsLoaded && roomsLoaded;
+  const enoughScripts = unassignedScripts.length >= scriptsNeeded;
 
   return (
     <div>
@@ -1199,18 +1388,18 @@ function ContentPlan() {
       <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:20,flexWrap:'wrap'}}>
         <div style={{fontSize:13,color:G.muted,fontWeight:700}}>Filming Trip:</div>
         {trips.filter(t => t.trip_date >= today).map(t => (
-          <button key={t.id} onClick={() => setActiveTrip(t)}
+          <button key={t.id} onClick={() => { setActiveTrip(t); setProposal(null); }}
             style={{background:activeTrip?.id===t.id?`${G.green}18`:'transparent',border:`1px solid ${activeTrip?.id===t.id?G.green:G.dim}`,borderRadius:20,padding:'5px 14px',fontSize:12,color:activeTrip?.id===t.id?G.green:G.muted,cursor:'pointer',fontFamily:'inherit'}}>
             {new Date(t.trip_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'})} · {t.scripts?.length||0}/{t.scripts_target}
           </button>
         ))}
-        <button onClick={() => { setCreating(true); loadScripts(); }}
+        <button onClick={() => setCreating(true)}
           style={{background:`${G.green}14`,border:`1px solid ${G.green}40`,borderRadius:20,padding:'5px 14px',fontSize:12,color:G.green,cursor:'pointer',fontFamily:'inherit',fontWeight:700}}>
           + New Trip
         </button>
       </div>
 
-      {/* Create trip form */}
+      {/* Create trip form — date + target ONLY, no rooms here */}
       {creating && (
         <Card style={{marginBottom:20,borderColor:`${G.green}40`}}>
           <CLabel color={G.green}>Schedule New Filming Trip</CLabel>
@@ -1230,25 +1419,7 @@ function ContentPlan() {
               </div>
             </div>
           </div>
-
-          <div style={{marginBottom:16}}>
-            <div style={{fontSize:11,color:G.muted,marginBottom:10}}>Available Rooms (optional — add now or later)</div>
-            {newRooms.map((room,i) => (
-              <div key={i} style={{display:'flex',gap:8,marginBottom:8,alignItems:'flex-start'}}>
-                <input value={room.name} onChange={e=>{const r=[...newRooms];r[i].name=e.target.value;setNewRooms(r);}}
-                  placeholder="e.g. Flat 2A, 64 Coventry Road"
-                  style={{flex:'0 0 220px',background:G.card2,border:`1px solid ${G.border}`,borderRadius:8,padding:'9px 12px',color:G.text,fontSize:13,outline:'none',fontFamily:'inherit'}}/>
-                <input value={room.description} onChange={e=>{const r=[...newRooms];r[i].description=e.target.value;setNewRooms(r);}}
-                  placeholder="En-suite, double bed, DSS accepted..."
-                  style={{flex:1,background:G.card2,border:`1px solid ${G.border}`,borderRadius:8,padding:'9px 12px',color:G.text,fontSize:13,outline:'none',fontFamily:'inherit'}}/>
-                <button onClick={()=>setNewRooms(newRooms.filter((_,j)=>j!==i))}
-                  style={{background:'transparent',border:`1px solid ${G.dim}`,borderRadius:8,padding:'9px 12px',color:G.muted,cursor:'pointer',fontSize:12,fontFamily:'inherit'}}>×</button>
-              </div>
-            ))}
-            <button onClick={()=>setNewRooms([...newRooms,{name:'',description:''}])}
-              style={{background:'transparent',border:`1px dashed ${G.dim}`,borderRadius:8,padding:'8px 14px',color:G.muted,cursor:'pointer',fontSize:12,fontFamily:'inherit'}}>+ Add Room</button>
-          </div>
-
+          <div style={{fontSize:11,color:G.dim,marginBottom:16}}>Rooms are managed separately in the Rooms tab — this trip will pull from whatever's marked "needs filling" when you're ready to match.</div>
           <div style={{display:'flex',gap:8}}>
             <button onClick={createTrip} disabled={!newDate||saveBusy}
               style={{background:!newDate||saveBusy?G.card2:G.green,border:'none',borderRadius:8,padding:'10px 22px',color:!newDate||saveBusy?G.muted:'#000',fontWeight:800,fontSize:13,cursor:!newDate||saveBusy?'not-allowed':'pointer',fontFamily:'inherit'}}>
@@ -1302,11 +1473,6 @@ function ContentPlan() {
                 </div>
               </div>
             </div>
-            {scriptsNeeded > 0 && (
-              <div style={{marginTop:12,background:`${G.coral}0a`,border:`1px solid ${G.coral}22`,borderRadius:8,padding:'10px 14px',fontSize:13,color:G.coral}}>
-                You need <strong>{scriptsNeeded} more script{scriptsNeeded>1?'s':''}</strong> before this trip. Scroll down to pick from your vault.
-              </div>
-            )}
             {scriptsNeeded === 0 && assignedScripts.length > 0 && (
               <div style={{marginTop:12,background:`${G.green}0a`,border:`1px solid ${G.green}22`,borderRadius:8,padding:'10px 14px',fontSize:13,color:G.green}}>
                 All scripts selected — you're ready to film.
@@ -1314,33 +1480,7 @@ function ContentPlan() {
             )}
           </Card>
 
-          {/* Rooms for this trip */}
-          <Card style={{marginBottom:16}}>
-            <CLabel color={G.cyan}>Available Rooms for This Trip</CLabel>
-            {rooms.length === 0 && (
-              <div style={{color:G.dim,fontSize:13,marginBottom:12}}>No rooms added yet — add what's free before you go.</div>
-            )}
-            {rooms.map((room,i) => (
-              <div key={i} style={{background:G.card2,borderRadius:8,padding:'12px 14px',marginBottom:8}}>
-                <div style={{fontWeight:700,color:G.text,fontSize:13,marginBottom:3}}>{room.name}</div>
-                <div style={{color:G.muted,fontSize:12}}>{room.description}</div>
-              </div>
-            ))}
-            <button onClick={() => {
-              const updated = [...rooms, { name: '', description: '' }];
-              setActiveTrip(prev => ({ ...prev, properties: updated }));
-            }} style={{background:'transparent',border:`1px dashed ${G.dim}`,borderRadius:8,padding:'8px 14px',color:G.muted,cursor:'pointer',fontSize:12,fontFamily:'inherit',marginTop:4}}>
-              + Add Room
-            </button>
-            {rooms.some(r => r.name) && (
-              <button onClick={()=>saveRooms(trip)}
-                style={{background:`${G.cyan}14`,border:`1px solid ${G.cyan}40`,borderRadius:8,padding:'8px 16px',color:G.cyan,cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'inherit',marginTop:4,marginLeft:8}}>
-                Save Rooms
-              </button>
-            )}
-          </Card>
-
-          {/* Scripts assigned to this trip */}
+          {/* Scripts already assigned */}
           {assignedScripts.length > 0 && (
             <div style={{marginBottom:16}}>
               <CLabel color={G.purple}>Selected Scripts for This Trip</CLabel>
@@ -1357,12 +1497,12 @@ function ContentPlan() {
                     <div style={{background:`${G.green}0a`,border:`1px solid ${G.green}22`,borderRadius:8,padding:'9px 12px',fontSize:12,color:G.green}}>
                       Filmed in: {s.property_note}
                     </div>
-                  ) : rooms.length > 0 ? (
+                  ) : needsFillingRooms.length > 0 ? (
                     <div>
                       <div style={{fontSize:11,color:G.muted,marginBottom:6}}>Assign a room to customise this script with Claude:</div>
                       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                        {rooms.filter(r=>r.name).map((room,ri) => (
-                          <button key={ri} onClick={()=>customiseScript(s, `${room.name}${room.description ? ` — ${room.description}` : ''}`)}
+                        {needsFillingRooms.map((room,ri) => (
+                          <button key={ri} onClick={()=>customiseScript(s, roomLabel(room))}
                             disabled={!!customising[s.id]}
                             style={{background:customising[s.id]?G.card2:`${G.cyan}14`,border:`1px solid ${customising[s.id]?G.border:`${G.cyan}40`}`,borderRadius:8,padding:'6px 12px',color:customising[s.id]?G.muted:G.cyan,cursor:customising[s.id]?'not-allowed':'pointer',fontSize:11,fontFamily:'inherit'}}>
                             {customising[s.id]?'Customising...':room.name}
@@ -1371,23 +1511,82 @@ function ContentPlan() {
                       </div>
                     </div>
                   ) : (
-                    <div style={{fontSize:11,color:G.dim}}>Add rooms above to customise this script for a specific property.</div>
+                    <div style={{fontSize:11,color:G.dim}}>No rooms marked "needs filling" — add one in the Rooms tab.</div>
                   )}
                 </Card>
               ))}
             </div>
           )}
 
-          {/* Script picker from vault */}
-          {scriptsNeeded > 0 && (
-            <div>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-                <CLabel color={G.gold}>Pick Scripts from Your Vault</CLabel>
-                {allScripts.length === 0 && <button onClick={loadScripts} style={{background:'transparent',border:`1px solid ${G.border}`,borderRadius:8,padding:'5px 12px',color:G.muted,cursor:'pointer',fontSize:11,fontFamily:'inherit'}}>Load Scripts</button>}
+          {/* Match engine */}
+          {scriptsNeeded > 0 && dataReady && !proposal && (
+            <Card style={{marginBottom:16,borderColor:`${G.gold}30`}}>
+              <CLabel color={G.gold}>Fill the Remaining {scriptsNeeded} Script{scriptsNeeded>1?'s':''}</CLabel>
+              {!enoughScripts ? (
+                <div>
+                  <div style={{fontSize:14,color:G.coral,lineHeight:1.7,marginBottom:14}}>
+                    You only have <strong>{unassignedScripts.length}</strong> unused script{unassignedScripts.length===1?'':'s'} in the vault — you need <strong>{scriptsNeeded - unassignedScripts.length} more</strong> before this trip is fully planned.
+                  </div>
+                  <button onClick={()=>onGoTo && onGoTo('comp')}
+                    style={{background:`${G.coral}14`,border:`1px solid ${G.coral}40`,borderRadius:8,padding:'9px 18px',color:G.coral,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+                    Go Analyse More Videos →
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{fontSize:14,color:'#ccc',lineHeight:1.7,marginBottom:14}}>
+                    I have <strong style={{color:G.gold}}>{unassignedScripts.length}</strong> unused scripts ready, and{' '}
+                    <strong style={{color:G.coral}}>{needsFillingRooms.length}</strong> room{needsFillingRooms.length===1?'':'s'} marked as needing filling.
+                    Shall I match {scriptsNeeded} of them, or would you like to pick specific pairings yourself?
+                  </div>
+                  <div style={{display:'flex',gap:8}}>
+                    <button onClick={()=>buildProposal(scriptsNeeded)}
+                      style={{background:G.gold,border:'none',borderRadius:8,padding:'9px 18px',color:'#000',fontWeight:800,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>
+                      Auto-Match {scriptsNeeded} →
+                    </button>
+                    <button onClick={()=>setManualMode(true)}
+                      style={{background:'transparent',border:`1px solid ${G.border}`,borderRadius:8,padding:'9px 16px',color:G.muted,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>
+                      I'll Pick Manually
+                    </button>
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* Proposal review — swap pairings before confirming */}
+          {proposal && (
+            <Card style={{marginBottom:16,borderColor:`${G.gold}40`}}>
+              <CLabel color={G.gold}>Review the Match</CLabel>
+              {proposal.map((pair, i) => (
+                <div key={pair.script.id} style={{display:'flex',alignItems:'center',gap:12,background:G.card2,borderRadius:10,padding:'12px 14px',marginBottom:8,flexWrap:'wrap'}}>
+                  <div style={{flex:1,minWidth:180,fontSize:13,fontWeight:700,color:G.text}}>{pair.script.title}</div>
+                  <span style={{color:G.dim,fontSize:16}}>→</span>
+                  <select value={pair.roomId || ''} onChange={e => {
+                    const updated = [...proposal]; updated[i] = { ...pair, roomId: e.target.value || null }; setProposal(updated);
+                  }} style={{background:G.card,border:`1px solid ${G.border}`,borderRadius:8,padding:'8px 12px',color:G.text,fontSize:12,outline:'none',fontFamily:'inherit',minWidth:200}}>
+                    <option value="">No room assigned</option>
+                    {needsFillingRooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
+                  </select>
+                </div>
+              ))}
+              <div style={{display:'flex',gap:8,marginTop:12}}>
+                <button onClick={()=>confirmProposal(trip)} disabled={confirmBusy}
+                  style={{background:confirmBusy?G.card2:G.green,border:'none',borderRadius:8,padding:'10px 20px',color:confirmBusy?G.muted:'#000',fontWeight:800,fontSize:13,cursor:confirmBusy?'not-allowed':'pointer',fontFamily:'inherit'}}>
+                  {confirmBusy?'Matching & Customising...':'Confirm & Customise All →'}
+                </button>
+                <button onClick={()=>setProposal(null)} disabled={confirmBusy}
+                  style={{background:'transparent',border:`1px solid ${G.border}`,borderRadius:8,padding:'10px 18px',color:G.muted,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
               </div>
-              {scriptsBusy && <div style={{color:G.muted,fontSize:13}}>Loading scripts...</div>}
-              {!scriptsBusy && allScripts.length > 0 && unassignedScripts.length === 0 && (
-                <div style={{color:G.dim,fontSize:13,textAlign:'center',padding:'30px 0'}}>All available scripts already assigned. Analyse more videos to generate new ones.</div>
+            </Card>
+          )}
+
+          {/* Manual picker fallback */}
+          {manualMode && scriptsNeeded > 0 && (
+            <div>
+              <CLabel color={G.gold}>Pick Scripts from Your Vault</CLabel>
+              {unassignedScripts.length === 0 && (
+                <div style={{color:G.dim,fontSize:13,textAlign:'center',padding:'30px 0'}}>No unused scripts left to pick.</div>
               )}
               {unassignedScripts.map(s => (
                 <Card key={s.id} style={{marginBottom:10,cursor:'pointer',borderColor:G.border}} onClick={()=>toggleScript(s,trip.id)}>
@@ -1418,7 +1617,7 @@ function ContentPlan() {
                 <div style={{fontSize:13,fontWeight:700,color:'#888'}}>{new Date(t.trip_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
                 <div style={{fontSize:11,color:G.dim,marginTop:2}}>{t.scripts?.length||0} scripts · {t.location||'Coventry'}</div>
               </div>
-              <button onClick={()=>setActiveTrip(t)} style={{background:'transparent',border:`1px solid ${G.dim}`,borderRadius:7,padding:'4px 12px',color:G.muted,cursor:'pointer',fontSize:11,fontFamily:'inherit'}}>View</button>
+              <button onClick={()=>{setActiveTrip(t);setProposal(null);}} style={{background:'transparent',border:`1px solid ${G.dim}`,borderRadius:7,padding:'4px 12px',color:G.muted,cursor:'pointer',fontSize:11,fontFamily:'inherit'}}>View</button>
             </div>
           ))}
         </div>
@@ -1445,6 +1644,7 @@ const PAGE_META = {
   home:    { title:"Dashboard",             sub:new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"}) },
   analyse: { title:"Analyse a Video",       sub:"Paste any viral TikTok or Instagram URL" },
   plan:    { title:"Content Plan",          sub:"Schedule filming trips · pick scripts · customise for each room" },
+  rooms:   { title:"Rooms",                 sub:"Every room that's free right now — feeds the trip matching engine" },
   channel: { title:"My Channel",            sub:"@allianzhousinguk — performance overview" },
   intel:   { title:"Reconexus Intelligence",sub:"Pattern memory — learns from every video you analyse" },
   comp:    { title:"Competitors",           sub:"Track and reverse-engineer competitor accounts" },
@@ -1475,7 +1675,8 @@ export default function App() {
         <main style={{padding:"24px 32px 60px",flex:1}}>
           {sec==="home"    && <Home onGoToPlan={()=>setSec("plan")}/>}
           {sec==="analyse" && <Analyse/>}
-          {sec==="plan"    && <ContentPlan/>}
+          {sec==="plan"    && <ContentPlan onGoTo={setSec}/>}
+          {sec==="rooms"   && <Rooms/>}
           {sec==="channel" && <Placeholder color={G.green}  label="my channel"   desc={"Coming next build\nWill scrape @allianzhousinguk and score your last 30 videos"}/>}
           {sec==="intel"   && <Placeholder color={G.gold}   label="intelligence" desc={"Reconexus builds pattern memory from every video you analyse\nAnalyse more videos to feed the engine"}/>}
           {sec==="comp"    && <Competitors/>}

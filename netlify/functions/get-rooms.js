@@ -14,21 +14,12 @@ exports.handler = async (event) => {
 
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
-  const { data: trips, error } = await supabase
-    .from('filming_trips')
+  const { data, error } = await supabase
+    .from('rooms')
     .select('*')
     .eq('workspace_id', ALLIANZ_WORKSPACE_ID)
-    .order('trip_date', { ascending: false });
+    .order('created_at', { ascending: false });
 
   if (error) return { statusCode: 500, headers: cors, body: JSON.stringify({ error: error.message }) };
-
-  const tripsWithCounts = await Promise.all((trips || []).map(async (trip) => {
-    const { data: scripts } = await supabase
-      .from('scripts')
-      .select('id, title, hook, body, cta, why, status, property_note, trip_id')
-      .eq('trip_id', trip.id);
-    return { ...trip, scripts: scripts || [] };
-  }));
-
-  return { statusCode: 200, headers: cors, body: JSON.stringify({ trips: tripsWithCounts }) };
+  return { statusCode: 200, headers: cors, body: JSON.stringify({ rooms: data || [] }) };
 };
