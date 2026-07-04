@@ -64,8 +64,8 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  let runId, datasetId, platform, url;
-  try { ({ runId, datasetId, platform, url } = JSON.parse(event.body)); } catch (e) {
+  let runId, datasetId, platform, url, competitorId;
+  try { ({ runId, datasetId, platform, url, competitorId } = JSON.parse(event.body)); } catch (e) {
     return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid JSON body' }) };
   }
 
@@ -94,6 +94,7 @@ exports.handler = async (event) => {
         status: 'analysing',
         video_data: videoData,
         raw_apify_data: items[0],
+        competitor_id: competitorId || null,
       })
       .select()
       .single();
@@ -103,7 +104,7 @@ exports.handler = async (event) => {
     await fetch(`${process.env.URL}/.netlify/functions/generate-analysis-background`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ analysisId: savedAnalysis.id, videoData, platform }),
+      body: JSON.stringify({ analysisId: savedAnalysis.id, videoData, platform, competitorId: competitorId || null }),
     });
 
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ videoData, analysisId: savedAnalysis.id }) };

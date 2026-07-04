@@ -38,6 +38,7 @@ const PATHS = {
   comp:    ["M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2","M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8","M23 21v-2a4 4 0 0 0-3-3.87","M16 3.13a4 4 0 0 1 0 7.75"],
   vault:   ["M12 2L2 7l10 5 10-5-10-5","M2 17l10 5 10-5","M2 12l10 5 10-5"],
   chat:    ["M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"],
+  plan:    ["M8 6h13","M8 12h13","M8 18h13","M3 6h.01","M3 12h.01","M3 18h.01"],
 };
 function NIcon({ n, sz = 17, col }) {
   return (
@@ -51,6 +52,7 @@ function NIcon({ n, sz = 17, col }) {
 const NAV = [
   { id:"home",    label:"Dashboard",    n:"home",    c:G.gold   },
   { id:"analyse", label:"Analyse",      n:"analyse", c:G.cyan   },
+  { id:"plan",    label:"Content Plan", n:"plan",    c:G.green  },
   { id:"channel", label:"My Channel",   n:"channel", c:G.green  },
   { id:"intel",   label:"Intelligence", n:"intel",   c:G.gold   },
   { id:"comp",    label:"Competitors",  n:"comp",    c:G.coral  },
@@ -189,10 +191,95 @@ function Bar({ label, score, color }) {
   );
 }
 
+/* ─── MISSION BRIEF ──────────────────────────────────────────────────────── */
+function MissionBrief({ onGoToPlan }) {
+  const [brief, setBrief] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/get-dashboard-brief').then(r => r.json()).then(d => setBrief(d)).catch(() => {});
+  }, []);
+
+  if (!brief) return null;
+
+  const { nextTrip, nextTripScriptCount, lastTrip, lastTripScripts, recentAnalyses, unusedScripts } = brief;
+
+  const daysUntil = nextTrip
+    ? Math.ceil((new Date(nextTrip.trip_date) - new Date()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  const scriptsNeeded = nextTrip ? Math.max(0, (nextTrip.scripts_target || 4) - nextTripScriptCount) : null;
+
+  const lastTripDate = lastTrip ? new Date(lastTrip.trip_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : null;
+  const competitorNames = [...new Set(
+    recentAnalyses.filter(a => a.competitors?.handle).map(a => a.competitors.handle)
+  )].slice(0, 3);
+
+  return (
+    <div style={{background:`linear-gradient(135deg,${G.gold}0a,${G.cyan}08)`,border:`1px solid ${G.gold}30`,borderRadius:18,padding:'22px 26px',marginBottom:20,position:'relative',overflow:'hidden'}}>
+      <div style={{position:'absolute',top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${G.gold},${G.cyan})`,opacity:.6}}/>
+      <div style={{fontSize:10,color:G.gold,fontWeight:700,textTransform:'uppercase',letterSpacing:'2px',marginBottom:12}}>Mission Brief — {new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
+
+      {nextTrip ? (
+        <div style={{marginBottom: lastTrip ? 16 : 0}}>
+          <div style={{fontSize:15,color:G.text,lineHeight:1.7,marginBottom:10}}>
+            <span style={{color:G.gold,fontWeight:800}}>Hey LMB Boss</span> — your next Coventry trip is{' '}
+            <span style={{color:G.cyan,fontWeight:700}}>{new Date(nextTrip.trip_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</span>
+            {daysUntil === 0 ? ' — that\'s today.' : daysUntil === 1 ? ', tomorrow.' : `, ${daysUntil} days away.`}
+          </div>
+          {scriptsNeeded > 0 ? (
+            <div style={{fontSize:14,color:'#bbb',lineHeight:1.7}}>
+              You have <span style={{color:G.green,fontWeight:700}}>{nextTripScriptCount}</span> of{' '}
+              <span style={{fontWeight:700}}>{nextTrip.scripts_target}</span> scripts selected.{' '}
+              <span style={{color:G.coral,fontWeight:700}}>You need {scriptsNeeded} more before you go.</span>
+              {unusedScripts > 0 && <> You have <span style={{color:G.purple,fontWeight:700}}>{unusedScripts} unused scripts</span> in your vault ready to pick.</>}
+            </div>
+          ) : (
+            <div style={{fontSize:14,color:G.green,fontWeight:700}}>All {nextTrip.scripts_target} scripts selected — you're ready to film.</div>
+          )}
+          <button onClick={onGoToPlan} style={{marginTop:12,background:`${G.gold}18`,border:`1px solid ${G.gold}40`,borderRadius:8,padding:'7px 16px',color:G.gold,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+            Open Content Plan →
+          </button>
+        </div>
+      ) : (
+        <div style={{fontSize:15,color:'#bbb',lineHeight:1.7,marginBottom:lastTrip ? 16 : 0}}>
+          <span style={{color:G.gold,fontWeight:800}}>Hey LMB Boss</span> — no filming trip scheduled yet.{' '}
+          <button onClick={onGoToPlan} style={{background:'none',border:'none',color:G.cyan,fontWeight:700,cursor:'pointer',fontSize:15,fontFamily:'inherit',padding:0,textDecoration:'underline'}}>
+            Set your next Coventry trip →
+          </button>
+        </div>
+      )}
+
+      {lastTrip && (
+        <div style={{borderTop:`1px solid ${G.border}`,paddingTop:14}}>
+          <div style={{fontSize:12,color:G.muted,lineHeight:1.7}}>
+            <span style={{color:G.dim,fontWeight:700,textTransform:'uppercase',letterSpacing:1,fontSize:10}}>Last trip</span>{' '}
+            {lastTripDate} — {lastTripScripts.length > 0
+              ? `${lastTripScripts.length} scripts filmed${competitorNames.length ? ` · inspired by ${competitorNames.join(', ')}` : ''}`
+              : 'no scripts were assigned'
+            }
+            {lastTrip.properties?.length > 0 && (
+              <span> · filmed at {lastTrip.location || 'Coventry'}</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!nextTrip && !lastTrip && recentAnalyses.length > 0 && (
+        <div style={{borderTop:`1px solid ${G.border}`,paddingTop:12,marginTop:4}}>
+          <div style={{fontSize:12,color:G.muted}}>
+            This week: <span style={{color:G.cyan,fontWeight:700}}>{recentAnalyses.length} videos analysed</span>
+            {competitorNames.length > 0 && <> from {competitorNames.join(', ')}</>} — scripts are sitting in your vault waiting.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── DASHBOARD HOME ─────────────────────────────────────────────────────── */
 const WDAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
-function Home() {
+function Home({ onGoToPlan }) {
   const [rows, setRows] = useState([]);
   const [busy, setBusy] = useState(true);
   useEffect(() => {
@@ -210,6 +297,7 @@ function Home() {
 
   return (
     <div>
+      <MissionBrief onGoToPlan={onGoToPlan}/>
       <div style={{display:"flex",gap:14,marginBottom:20,flexWrap:"wrap"}}>
         <Stat label="Total Analyses"    val={rows.length}  color={G.cyan}   badge={rows.length?`${rows.length} videos`:"Start analysing"}/>
         <Stat label="Scripts Generated" val={scripts}      color={G.purple} badge={scripts?`${scripts} ready`:"No scripts yet"}/>
@@ -615,7 +703,7 @@ function ChatReconexus() {
 }
 
 /* ─── COMPETITORS ────────────────────────────────────────────────────────── */
-function Competitors() {
+function Competitors({ onAnalyseVideo }) {
   const [competitors, setCompetitors] = useState([]);
   const [busy, setBusy] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -628,6 +716,10 @@ function Competitors() {
   const [addErr, setAddErr] = useState('');
   const [addBusy, setAddBusy] = useState(false);
   const [scraping, setScraping] = useState({});
+  const [compTab, setCompTab] = useState('videos');
+  const [compAnalyses, setCompAnalyses] = useState([]);
+  const [compAnalysesBusy, setCompAnalysesBusy] = useState(false);
+  const [analysingVideo, setAnalysingVideo] = useState({});
 
   function fmt(n) {
     if (!n) return '0';
@@ -704,7 +796,7 @@ function Competitors() {
   }
 
   async function openCompetitor(c) {
-    setSelected(c); setVideos([]);
+    setSelected(c); setVideos([]); setCompTab('videos'); setCompAnalyses([]);
     setVideosBusy(true);
     try {
       const res = await fetch(`/api/get-competitor-videos?competitorId=${c.id}`);
@@ -714,18 +806,66 @@ function Competitors() {
     setVideosBusy(false);
   }
 
+  async function loadCompAnalyses(c) {
+    setCompAnalysesBusy(true);
+    try {
+      const res = await fetch(`/api/get-competitor-analyses?competitorId=${c.id}`);
+      const d = await res.json();
+      setCompAnalyses(d.analyses || []);
+    } catch {}
+    setCompAnalysesBusy(false);
+  }
+
+  async function analyseCompetitorVideo(v) {
+    if (!v.url) return;
+    setAnalysingVideo(prev => ({ ...prev, [v.id]: 'starting' }));
+    try {
+      const s = await fetch('/api/analyse', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: v.url }) });
+      const sd = await s.json();
+      if (!s.ok) throw new Error(sd.error || 'Failed to start');
+      const { runId, datasetId, platform: plat, url: cu } = sd;
+      setAnalysingVideo(prev => ({ ...prev, [v.id]: 'scraping' }));
+      let att = 0, analysisId = null;
+      while (att < 40) {
+        await new Promise(r => setTimeout(r, 5000));
+        const r = await fetch('/api/result', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ runId, datasetId, platform: plat, url: cu, competitorId: selected.id }) });
+        const rd = await r.json();
+        if (!r.ok) throw new Error(rd.error || 'Scrape failed');
+        if (!rd.pending) { analysisId = rd.analysisId; break; }
+        att++;
+      }
+      if (!analysisId) throw new Error('No analysis ID');
+      setAnalysingVideo(prev => ({ ...prev, [v.id]: 'analysing' }));
+      att = 0;
+      while (att < 40) {
+        await new Promise(r => setTimeout(r, 5000));
+        const r = await fetch(`/api/get-analysis-status?id=${analysisId}`);
+        const rd = await r.json();
+        if (rd.status === 'done') { break; }
+        if (rd.status === 'failed') throw new Error('Analysis failed');
+        att++;
+      }
+      setAnalysingVideo(prev => { const n = { ...prev }; delete n[v.id]; return n; });
+      setCompTab('analyses');
+      await loadCompAnalyses(selected);
+    } catch (e) {
+      setAnalysingVideo(prev => { const n = { ...prev }; delete n[v.id]; return n; });
+      alert(e.message);
+    }
+  }
+
   /* ── Detail view ── */
   if (selected) {
     const isScraping = !!scraping[selected.id];
     return (
       <div>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:10}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,flexWrap:'wrap',gap:10}}>
           <button onClick={() => setSelected(null)} style={{background:'transparent',border:`1px solid ${G.border}`,borderRadius:8,padding:'7px 14px',color:G.muted,cursor:'pointer',fontSize:12,fontFamily:'inherit'}}>
             ← Back
           </button>
           <div style={{flex:1,minWidth:160}}>
             <div style={{fontSize:20,fontWeight:800,color:G.text}}>{selected.handle}</div>
-            <div style={{fontSize:12,color:G.muted,marginTop:2,textTransform:'capitalize'}}>{selected.platform} · {videos.length} videos</div>
+            <div style={{fontSize:12,color:G.muted,marginTop:2,textTransform:'capitalize'}}>{selected.platform} · {videos.length} videos scraped</div>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             <div style={{display:'flex',gap:6,alignItems:'center'}}>
@@ -742,6 +882,67 @@ function Competitors() {
           </div>
         </div>
 
+        {/* Tab bar */}
+        <div style={{display:'flex',gap:4,marginBottom:16,background:G.card,border:`1px solid ${G.border}`,borderRadius:10,padding:4,width:'fit-content'}}>
+          {[{k:'videos',l:'Videos'},{k:'analyses',l:`Analyses${compAnalyses.length?` (${compAnalyses.length})`:''}`}].map(t=>(
+            <button key={t.k} onClick={()=>{ setCompTab(t.k); if(t.k==='analyses'&&compAnalyses.length===0) loadCompAnalyses(selected); }}
+              style={{background:compTab===t.k?G.coral:'transparent',border:'none',borderRadius:7,padding:'6px 16px',color:compTab===t.k?'#000':G.muted,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
+              {t.l}
+            </button>
+          ))}
+        </div>
+
+        {compTab==='analyses' && (
+          <div>
+            {compAnalysesBusy && <div style={{color:G.muted,fontSize:13,padding:'30px 0',textAlign:'center'}}>Loading analyses...</div>}
+            {!compAnalysesBusy && compAnalyses.length===0 && (
+              <Card><div style={{textAlign:'center',padding:'40px 20px'}}>
+                <Brain s={44}/>
+                <div style={{color:G.dim,fontSize:13,marginTop:16,lineHeight:1.9}}>No analyses yet — go to Videos tab and hit Analyse on any video</div>
+              </div></Card>
+            )}
+            {compAnalyses.map((a,i)=>(
+              <Card key={a.id} style={{marginBottom:12}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:14}}>
+                  <div>
+                    <div style={{fontSize:13,color:G.muted,marginBottom:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:360}}>{a.url}</div>
+                    <div style={{fontSize:11,color:G.dim}}>{new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
+                  </div>
+                  <div style={{display:'flex',gap:10,alignItems:'center',flexShrink:0}}>
+                    <div style={{textAlign:'center'}}>
+                      <div style={{fontFamily:"'Nunito',sans-serif",fontSize:28,fontWeight:900,color:G.gold,lineHeight:1}}>{a.analysis?.viralScore||'—'}</div>
+                      <div style={{fontSize:9,color:G.muted,textTransform:'uppercase',letterSpacing:1}}>Viral</div>
+                    </div>
+                  </div>
+                </div>
+                {a.analysis?.whyItWorked && (
+                  <div style={{marginBottom:12}}>
+                    <div style={{fontSize:10,color:G.cyan,fontWeight:700,textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Why It Worked</div>
+                    {a.analysis.whyItWorked.slice(0,2).map((r,j)=>(
+                      <div key={j} style={{fontSize:12,color:'#aaa',lineHeight:1.6,marginBottom:4}}>· {r}</div>
+                    ))}
+                  </div>
+                )}
+                {a.analysis?.hookFormula && (
+                  <div style={{background:`${G.green}0a`,border:`1px solid ${G.green}22`,borderRadius:8,padding:'10px 14px'}}>
+                    <div style={{fontSize:10,color:G.green,fontWeight:700,textTransform:'uppercase',letterSpacing:1,marginBottom:3}}>Hook Formula</div>
+                    <div style={{fontSize:12,color:'#ccc'}}>{a.analysis.hookFormula}</div>
+                  </div>
+                )}
+                {a.analysis?.scripts?.length > 0 && (
+                  <div style={{marginTop:12,padding:'10px 0 0',borderTop:`1px solid ${G.border}`}}>
+                    <div style={{fontSize:10,color:G.purple,fontWeight:700,textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>{a.analysis.scripts.length} Scripts Generated</div>
+                    {a.analysis.scripts.map((sc,j)=>(
+                      <div key={j} style={{fontSize:12,color:G.muted,marginBottom:3}}>· {sc.title}</div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {compTab==='videos' && <>
         {videosBusy && <div style={{color:G.muted,fontSize:13,padding:'40px 0',textAlign:'center'}}>Loading videos...</div>}
         {!videosBusy && videos.length===0 && (
           <Card><div style={{textAlign:'center',padding:'40px 20px'}}>
@@ -770,12 +971,25 @@ function Competitors() {
                     ))}
                   </div>
                 </div>
-                {vd.url&&<a href={vd.url} target="_blank" rel="noopener noreferrer"
-                  style={{color:G.muted,fontSize:11,border:`1px solid ${G.border}`,borderRadius:7,padding:'5px 10px',textDecoration:'none',flexShrink:0,whiteSpace:'nowrap'}}>View →</a>}
+                <div style={{display:'flex',flexDirection:'column',gap:6,flexShrink:0}}>
+                  {vd.url&&<a href={vd.url} target="_blank" rel="noopener noreferrer"
+                    style={{color:G.muted,fontSize:11,border:`1px solid ${G.border}`,borderRadius:7,padding:'5px 10px',textDecoration:'none',whiteSpace:'nowrap',textAlign:'center'}}>View →</a>}
+                  {vd.url && (() => {
+                    const aState = analysingVideo[v.id];
+                    return (
+                      <button onClick={e=>{e.stopPropagation();if(!aState)analyseCompetitorVideo(v);}}
+                        disabled={!!aState}
+                        style={{background:aState?G.card2:`${G.cyan}14`,border:`1px solid ${aState?G.border:`${G.cyan}40`}`,borderRadius:7,padding:'5px 10px',color:aState?G.muted:G.cyan,fontSize:11,fontWeight:700,cursor:aState?'not-allowed':'pointer',fontFamily:'inherit',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:5}}>
+                        {aState ? <><span style={{width:5,height:5,borderRadius:'50%',background:G.cyan,display:'inline-block',animation:'pulse 1s infinite'}}/>{aState==='analysing'?'Analysing...':'Scraping...'}</> : 'Analyse →'}
+                      </button>
+                    );
+                  })()}
+                </div>
               </div>
             </Card>
           );
         })}
+        </>}
       </div>
     );
   }
@@ -875,6 +1089,344 @@ function Competitors() {
   );
 }
 
+/* ─── CONTENT PLAN ───────────────────────────────────────────────────────── */
+function ContentPlan() {
+  const [trips, setTrips] = useState([]);
+  const [busy, setBusy] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [newDate, setNewDate] = useState('');
+  const [newTarget, setNewTarget] = useState(4);
+  const [newRooms, setNewRooms] = useState([{ name: '', description: '' }]);
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [activeTrip, setActiveTrip] = useState(null);
+
+  // Script picker state
+  const [allScripts, setAllScripts] = useState([]);
+  const [scriptsBusy, setScriptsBusy] = useState(false);
+  const [customising, setCustomising] = useState({});
+
+  useEffect(() => { loadTrips(); }, []);
+
+  async function loadTrips() {
+    setBusy(true);
+    try {
+      const res = await fetch('/api/get-trips');
+      const d = await res.json();
+      const list = d.trips || [];
+      setTrips(list);
+      // Auto-open the next upcoming trip
+      const today = new Date().toISOString().split('T')[0];
+      const next = list.find(t => t.trip_date >= today);
+      if (next && !activeTrip) setActiveTrip(next);
+    } catch {}
+    setBusy(false);
+  }
+
+  async function loadScripts() {
+    setScriptsBusy(true);
+    try {
+      const res = await fetch('/api/get-scripts');
+      const d = await res.json();
+      setAllScripts(d.scripts || []);
+    } catch {}
+    setScriptsBusy(false);
+  }
+
+  async function createTrip() {
+    if (!newDate) return;
+    setSaveBusy(true);
+    try {
+      const properties = newRooms.filter(r => r.name.trim());
+      const res = await fetch('/api/create-trip', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tripDate: newDate, scriptsTarget: newTarget, properties }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Failed');
+      setCreating(false);
+      setNewDate(''); setNewTarget(4); setNewRooms([{ name: '', description: '' }]);
+      await loadTrips();
+      setActiveTrip(d.trip);
+    } catch (e) { alert(e.message); }
+    setSaveBusy(false);
+  }
+
+  async function saveRooms(trip) {
+    const properties = newRooms.filter(r => r.name.trim());
+    await fetch('/api/update-trip', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tripId: trip.id, properties }),
+    });
+    await loadTrips();
+  }
+
+  async function toggleScript(script, tripId) {
+    const alreadyAssigned = script.trip_id === tripId;
+    await fetch('/api/assign-script-to-trip', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scriptId: script.id, tripId: alreadyAssigned ? null : tripId }),
+    });
+    await loadScripts();
+    await loadTrips();
+  }
+
+  async function customiseScript(script, roomDescription) {
+    setCustomising(prev => ({ ...prev, [script.id]: true }));
+    try {
+      const res = await fetch('/api/customise-script', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scriptId: script.id, roomDescription }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Failed');
+      await loadTrips();
+    } catch (e) { alert(e.message); }
+    setCustomising(prev => { const n = { ...prev }; delete n[script.id]; return n; });
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+
+  const trip = activeTrip ? trips.find(t => t.id === activeTrip.id) || activeTrip : null;
+  const daysUntil = trip ? Math.ceil((new Date(trip.trip_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+  const assignedScripts = trip ? (trip.scripts || []) : [];
+  const scriptsNeeded = trip ? Math.max(0, (trip.scripts_target || 4) - assignedScripts.length) : 0;
+  const unassignedScripts = allScripts.filter(s => !s.trip_id && s.status === 'unused');
+  const rooms = trip?.properties || [];
+
+  return (
+    <div>
+      {/* Trip selector / create */}
+      <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:20,flexWrap:'wrap'}}>
+        <div style={{fontSize:13,color:G.muted,fontWeight:700}}>Filming Trip:</div>
+        {trips.filter(t => t.trip_date >= today).map(t => (
+          <button key={t.id} onClick={() => setActiveTrip(t)}
+            style={{background:activeTrip?.id===t.id?`${G.green}18`:'transparent',border:`1px solid ${activeTrip?.id===t.id?G.green:G.dim}`,borderRadius:20,padding:'5px 14px',fontSize:12,color:activeTrip?.id===t.id?G.green:G.muted,cursor:'pointer',fontFamily:'inherit'}}>
+            {new Date(t.trip_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'})} · {t.scripts?.length||0}/{t.scripts_target}
+          </button>
+        ))}
+        <button onClick={() => { setCreating(true); loadScripts(); }}
+          style={{background:`${G.green}14`,border:`1px solid ${G.green}40`,borderRadius:20,padding:'5px 14px',fontSize:12,color:G.green,cursor:'pointer',fontFamily:'inherit',fontWeight:700}}>
+          + New Trip
+        </button>
+      </div>
+
+      {/* Create trip form */}
+      {creating && (
+        <Card style={{marginBottom:20,borderColor:`${G.green}40`}}>
+          <CLabel color={G.green}>Schedule New Filming Trip</CLabel>
+          <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:16}}>
+            <div>
+              <div style={{fontSize:11,color:G.muted,marginBottom:5}}>Trip Date</div>
+              <input type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} min={today}
+                style={{background:G.card2,border:`1px solid ${G.border}`,borderRadius:8,padding:'10px 14px',color:G.text,fontSize:14,outline:'none',fontFamily:'inherit'}}/>
+            </div>
+            <div>
+              <div style={{fontSize:11,color:G.muted,marginBottom:5}}>Scripts Target</div>
+              <div style={{display:'flex',gap:6}}>
+                {[2,3,4,5].map(n=>(
+                  <button key={n} onClick={()=>setNewTarget(n)}
+                    style={{background:newTarget===n?`${G.green}18`:'transparent',border:`1px solid ${newTarget===n?G.green:G.dim}`,borderRadius:8,padding:'8px 14px',color:newTarget===n?G.green:G.muted,cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit'}}>{n}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:11,color:G.muted,marginBottom:10}}>Available Rooms (optional — add now or later)</div>
+            {newRooms.map((room,i) => (
+              <div key={i} style={{display:'flex',gap:8,marginBottom:8,alignItems:'flex-start'}}>
+                <input value={room.name} onChange={e=>{const r=[...newRooms];r[i].name=e.target.value;setNewRooms(r);}}
+                  placeholder="e.g. Flat 2A, 64 Coventry Road"
+                  style={{flex:'0 0 220px',background:G.card2,border:`1px solid ${G.border}`,borderRadius:8,padding:'9px 12px',color:G.text,fontSize:13,outline:'none',fontFamily:'inherit'}}/>
+                <input value={room.description} onChange={e=>{const r=[...newRooms];r[i].description=e.target.value;setNewRooms(r);}}
+                  placeholder="En-suite, double bed, DSS accepted..."
+                  style={{flex:1,background:G.card2,border:`1px solid ${G.border}`,borderRadius:8,padding:'9px 12px',color:G.text,fontSize:13,outline:'none',fontFamily:'inherit'}}/>
+                <button onClick={()=>setNewRooms(newRooms.filter((_,j)=>j!==i))}
+                  style={{background:'transparent',border:`1px solid ${G.dim}`,borderRadius:8,padding:'9px 12px',color:G.muted,cursor:'pointer',fontSize:12,fontFamily:'inherit'}}>×</button>
+              </div>
+            ))}
+            <button onClick={()=>setNewRooms([...newRooms,{name:'',description:''}])}
+              style={{background:'transparent',border:`1px dashed ${G.dim}`,borderRadius:8,padding:'8px 14px',color:G.muted,cursor:'pointer',fontSize:12,fontFamily:'inherit'}}>+ Add Room</button>
+          </div>
+
+          <div style={{display:'flex',gap:8}}>
+            <button onClick={createTrip} disabled={!newDate||saveBusy}
+              style={{background:!newDate||saveBusy?G.card2:G.green,border:'none',borderRadius:8,padding:'10px 22px',color:!newDate||saveBusy?G.muted:'#000',fontWeight:800,fontSize:13,cursor:!newDate||saveBusy?'not-allowed':'pointer',fontFamily:'inherit'}}>
+              {saveBusy?'Saving...':'Schedule Trip →'}
+            </button>
+            <button onClick={()=>setCreating(false)}
+              style={{background:'transparent',border:`1px solid ${G.border}`,borderRadius:8,padding:'10px 18px',color:G.muted,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+          </div>
+        </Card>
+      )}
+
+      {busy && <div style={{color:G.muted,fontSize:13}}>Loading...</div>}
+
+      {!busy && !trip && !creating && (
+        <Card>
+          <div style={{textAlign:'center',padding:'50px 20px'}}>
+            <Brain s={52}/>
+            <div style={{color:G.dim,fontSize:13,lineHeight:1.9,marginTop:20,fontFamily:"'Nunito',sans-serif"}}>
+              No filming trips scheduled yet<br/>
+              Hit "New Trip" to plan your next Coventry visit
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {trip && (
+        <>
+          {/* Trip header */}
+          <Card style={{marginBottom:16,borderColor:daysUntil<=3&&daysUntil>=0?`${G.coral}50`:G.border}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:12}}>
+              <div>
+                <div style={{fontSize:18,fontWeight:800,color:G.text,marginBottom:4}}>
+                  {new Date(trip.trip_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+                </div>
+                <div style={{fontSize:13,color:G.muted}}>{trip.location || 'Coventry'}</div>
+              </div>
+              <div style={{display:'flex',gap:16,alignItems:'center'}}>
+                <div style={{textAlign:'center'}}>
+                  <div style={{fontFamily:"'Nunito',sans-serif",fontSize:32,fontWeight:900,color:daysUntil<=3&&daysUntil>=0?G.coral:daysUntil===0?G.gold:G.green,lineHeight:1}}>
+                    {daysUntil < 0 ? '—' : daysUntil}
+                  </div>
+                  <div style={{fontSize:10,color:G.muted,textTransform:'uppercase',letterSpacing:1}}>
+                    {daysUntil < 0 ? 'Past' : daysUntil === 0 ? 'Today' : 'Days left'}
+                  </div>
+                </div>
+                <div style={{textAlign:'center'}}>
+                  <div style={{fontFamily:"'Nunito',sans-serif",fontSize:32,fontWeight:900,color:scriptsNeeded===0?G.green:G.gold,lineHeight:1}}>
+                    {assignedScripts.length}/{trip.scripts_target}
+                  </div>
+                  <div style={{fontSize:10,color:G.muted,textTransform:'uppercase',letterSpacing:1}}>Scripts</div>
+                </div>
+              </div>
+            </div>
+            {scriptsNeeded > 0 && (
+              <div style={{marginTop:12,background:`${G.coral}0a`,border:`1px solid ${G.coral}22`,borderRadius:8,padding:'10px 14px',fontSize:13,color:G.coral}}>
+                You need <strong>{scriptsNeeded} more script{scriptsNeeded>1?'s':''}</strong> before this trip. Scroll down to pick from your vault.
+              </div>
+            )}
+            {scriptsNeeded === 0 && assignedScripts.length > 0 && (
+              <div style={{marginTop:12,background:`${G.green}0a`,border:`1px solid ${G.green}22`,borderRadius:8,padding:'10px 14px',fontSize:13,color:G.green}}>
+                All scripts selected — you're ready to film.
+              </div>
+            )}
+          </Card>
+
+          {/* Rooms for this trip */}
+          <Card style={{marginBottom:16}}>
+            <CLabel color={G.cyan}>Available Rooms for This Trip</CLabel>
+            {rooms.length === 0 && (
+              <div style={{color:G.dim,fontSize:13,marginBottom:12}}>No rooms added yet — add what's free before you go.</div>
+            )}
+            {rooms.map((room,i) => (
+              <div key={i} style={{background:G.card2,borderRadius:8,padding:'12px 14px',marginBottom:8}}>
+                <div style={{fontWeight:700,color:G.text,fontSize:13,marginBottom:3}}>{room.name}</div>
+                <div style={{color:G.muted,fontSize:12}}>{room.description}</div>
+              </div>
+            ))}
+            <button onClick={() => {
+              const updated = [...rooms, { name: '', description: '' }];
+              setActiveTrip(prev => ({ ...prev, properties: updated }));
+            }} style={{background:'transparent',border:`1px dashed ${G.dim}`,borderRadius:8,padding:'8px 14px',color:G.muted,cursor:'pointer',fontSize:12,fontFamily:'inherit',marginTop:4}}>
+              + Add Room
+            </button>
+            {rooms.some(r => r.name) && (
+              <button onClick={()=>saveRooms(trip)}
+                style={{background:`${G.cyan}14`,border:`1px solid ${G.cyan}40`,borderRadius:8,padding:'8px 16px',color:G.cyan,cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'inherit',marginTop:4,marginLeft:8}}>
+                Save Rooms
+              </button>
+            )}
+          </Card>
+
+          {/* Scripts assigned to this trip */}
+          {assignedScripts.length > 0 && (
+            <div style={{marginBottom:16}}>
+              <CLabel color={G.purple}>Selected Scripts for This Trip</CLabel>
+              {assignedScripts.map((s,i) => (
+                <Card key={s.id} style={{marginBottom:10,borderLeft:`3px solid ${G.purple}`,borderRadius:'0 12px 12px 0'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
+                    <div style={{fontWeight:700,color:G.text,fontSize:14}}>{s.title}</div>
+                    <button onClick={()=>toggleScript(s, trip.id)}
+                      style={{background:'transparent',border:`1px solid ${G.dim}`,borderRadius:7,padding:'3px 10px',color:G.muted,cursor:'pointer',fontSize:11,fontFamily:'inherit'}}>Remove</button>
+                  </div>
+                  <div style={{background:`${G.coral}0e`,border:`1px solid ${G.coral}20`,borderRadius:7,padding:'9px 12px',fontSize:13,color:'#ddd',fontStyle:'italic',marginBottom:10}}>"{s.hook}"</div>
+                  <div style={{color:'#888',fontSize:13,lineHeight:1.7,marginBottom:12}}>{s.body}</div>
+                  {s.property_note ? (
+                    <div style={{background:`${G.green}0a`,border:`1px solid ${G.green}22`,borderRadius:8,padding:'9px 12px',fontSize:12,color:G.green}}>
+                      Filmed in: {s.property_note}
+                    </div>
+                  ) : rooms.length > 0 ? (
+                    <div>
+                      <div style={{fontSize:11,color:G.muted,marginBottom:6}}>Assign a room to customise this script with Claude:</div>
+                      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                        {rooms.filter(r=>r.name).map((room,ri) => (
+                          <button key={ri} onClick={()=>customiseScript(s, `${room.name}${room.description ? ` — ${room.description}` : ''}`)}
+                            disabled={!!customising[s.id]}
+                            style={{background:customising[s.id]?G.card2:`${G.cyan}14`,border:`1px solid ${customising[s.id]?G.border:`${G.cyan}40`}`,borderRadius:8,padding:'6px 12px',color:customising[s.id]?G.muted:G.cyan,cursor:customising[s.id]?'not-allowed':'pointer',fontSize:11,fontFamily:'inherit'}}>
+                            {customising[s.id]?'Customising...':room.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{fontSize:11,color:G.dim}}>Add rooms above to customise this script for a specific property.</div>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Script picker from vault */}
+          {scriptsNeeded > 0 && (
+            <div>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+                <CLabel color={G.gold}>Pick Scripts from Your Vault</CLabel>
+                {allScripts.length === 0 && <button onClick={loadScripts} style={{background:'transparent',border:`1px solid ${G.border}`,borderRadius:8,padding:'5px 12px',color:G.muted,cursor:'pointer',fontSize:11,fontFamily:'inherit'}}>Load Scripts</button>}
+              </div>
+              {scriptsBusy && <div style={{color:G.muted,fontSize:13}}>Loading scripts...</div>}
+              {!scriptsBusy && allScripts.length > 0 && unassignedScripts.length === 0 && (
+                <div style={{color:G.dim,fontSize:13,textAlign:'center',padding:'30px 0'}}>All available scripts already assigned. Analyse more videos to generate new ones.</div>
+              )}
+              {unassignedScripts.map(s => (
+                <Card key={s.id} style={{marginBottom:10,cursor:'pointer',borderColor:G.border}} onClick={()=>toggleScript(s,trip.id)}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,color:G.text,fontSize:13,marginBottom:6}}>{s.title}</div>
+                      <div style={{background:`${G.coral}0e`,border:`1px solid ${G.coral}20`,borderRadius:6,padding:'8px 11px',fontSize:13,color:'#ddd',fontStyle:'italic',marginBottom:8}}>"{s.hook}"</div>
+                      <div style={{color:'#777',fontSize:12,lineHeight:1.6}}>{s.body?.slice(0,180)}{s.body?.length>180?'...':''}</div>
+                    </div>
+                    <button style={{background:`${G.gold}14`,border:`1px solid ${G.gold}40`,borderRadius:8,padding:'7px 14px',color:G.gold,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
+                      Add →
+                    </button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Past trips */}
+      {trips.filter(t => t.trip_date < today).length > 0 && (
+        <div style={{marginTop:28}}>
+          <CLabel>Past Trips</CLabel>
+          {trips.filter(t=>t.trip_date<today).map(t=>(
+            <div key={t.id} style={{background:G.card2,borderRadius:10,padding:'12px 16px',marginBottom:8,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:'#888'}}>{new Date(t.trip_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
+                <div style={{fontSize:11,color:G.dim,marginTop:2}}>{t.scripts?.length||0} scripts · {t.location||'Coventry'}</div>
+              </div>
+              <button onClick={()=>setActiveTrip(t)} style={{background:'transparent',border:`1px solid ${G.dim}`,borderRadius:7,padding:'4px 12px',color:G.muted,cursor:'pointer',fontSize:11,fontFamily:'inherit'}}>View</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── PLACEHOLDERS ───────────────────────────────────────────────────────── */
 function Placeholder({ color, label, desc }) {
   return (
@@ -892,6 +1444,7 @@ function Placeholder({ color, label, desc }) {
 const PAGE_META = {
   home:    { title:"Dashboard",             sub:new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"}) },
   analyse: { title:"Analyse a Video",       sub:"Paste any viral TikTok or Instagram URL" },
+  plan:    { title:"Content Plan",          sub:"Schedule filming trips · pick scripts · customise for each room" },
   channel: { title:"My Channel",            sub:"@allianzhousinguk — performance overview" },
   intel:   { title:"Reconexus Intelligence",sub:"Pattern memory — learns from every video you analyse" },
   comp:    { title:"Competitors",           sub:"Track and reverse-engineer competitor accounts" },
@@ -909,6 +1462,7 @@ export default function App() {
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800;900&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;font-family:'Nunito',sans-serif;}
         input::placeholder{color:${G.dim};}
+        input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.5);}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
         ::-webkit-scrollbar{width:4px;background:${G.bg};}
         ::-webkit-scrollbar-thumb{background:${G.dim};border-radius:2px;}
@@ -919,8 +1473,9 @@ export default function App() {
       <div style={{marginLeft:240,flex:1,display:"flex",flexDirection:"column",minHeight:"100vh"}}>
         <Header title={meta.title} sub={meta.sub}/>
         <main style={{padding:"24px 32px 60px",flex:1}}>
-          {sec==="home"    && <Home/>}
+          {sec==="home"    && <Home onGoToPlan={()=>setSec("plan")}/>}
           {sec==="analyse" && <Analyse/>}
+          {sec==="plan"    && <ContentPlan/>}
           {sec==="channel" && <Placeholder color={G.green}  label="my channel"   desc={"Coming next build\nWill scrape @allianzhousinguk and score your last 30 videos"}/>}
           {sec==="intel"   && <Placeholder color={G.gold}   label="intelligence" desc={"Reconexus builds pattern memory from every video you analyse\nAnalyse more videos to feed the engine"}/>}
           {sec==="comp"    && <Competitors/>}
