@@ -582,39 +582,61 @@ function Analyse() {
 }
 
 /* ─── SCRIPT VAULT ───────────────────────────────────────────────────────── */
+const VAULT_TABS = [
+  { k:"pending",  l:"Pending Review", c:G.gold },
+  { k:"unused",   l:"Approved",       c:G.purple },
+  { k:"used",     l:"Used",           c:G.dim },
+  { k:"rejected", l:"Rejected",       c:G.coral },
+];
+
 function Vault() {
   const [scripts,setScripts]=useState([]);
   const [busy,setBusy]=useState(true);
-  const [filter,setFilter]=useState("all");
+  const [filter,setFilter]=useState("pending");
 
   useEffect(()=>{
     setBusy(true);
-    const q=filter!=="all"?`?status=${filter}`:"";
-    fetch(`/api/get-scripts${q}`).then(r=>r.json())
+    fetch(`/api/get-scripts?status=${filter}&limit=100`).then(r=>r.json())
       .then(d=>{setScripts(d.scripts||[]);setBusy(false);}).catch(()=>setBusy(false));
   },[filter]);
 
-  async function markUsed(id) {
-    await fetch("/api/update-script",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({scriptId:id,status:"used"})});
-    setScripts(prev=>prev.map(s=>s.id===id?{...s,status:"used"}:s));
+  async function setStatus(id, status) {
+    await fetch("/api/update-script",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({scriptId:id,status})});
+    setScripts(prev=>prev.filter(s=>s.id!==id));
   }
+
+  const tab = VAULT_TABS.find(t=>t.k===filter);
 
   return (
     <div>
-      <div style={{display:"flex",gap:8,marginBottom:20}}>
-        {["all","unused","used"].map(f=>(
-          <button key={f} onClick={()=>setFilter(f)} style={{background:filter===f?`${G.purple}18`:"transparent",border:`1px solid ${filter===f?G.purple:G.dim}`,borderRadius:20,padding:"6px 16px",fontSize:12,color:filter===f?G.purple:G.muted,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{f}</button>
+      <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>
+        {VAULT_TABS.map(t=>(
+          <button key={t.k} onClick={()=>setFilter(t.k)} style={{background:filter===t.k?`${t.c}18`:"transparent",border:`1px solid ${filter===t.k?t.c:G.dim}`,borderRadius:20,padding:"6px 16px",fontSize:12,color:filter===t.k?t.c:G.muted,cursor:"pointer",fontFamily:"inherit"}}>{t.l}</button>
         ))}
       </div>
       {busy && <div style={{color:G.muted,fontSize:13}}>Loading...</div>}
-      {!busy && scripts.length===0 && <div style={{color:G.dim,fontSize:13,textAlign:"center",padding:"50px 0",fontFamily:"'Nunito',sans-serif"}}>no scripts yet — analyse a viral video to generate scripts</div>}
+      {!busy && scripts.length===0 && (
+        <div style={{color:G.dim,fontSize:13,textAlign:"center",padding:"50px 0",fontFamily:"'Nunito',sans-serif"}}>
+          {filter==="pending" ? "nothing waiting for review — analyse a viral video to generate scripts" : `no ${tab.l.toLowerCase()} scripts`}
+        </div>
+      )}
       {scripts.map(s=>(
-        <Card key={s.id} style={{marginBottom:12,borderLeft:`3px solid ${s.status==="used"?G.dim:G.purple}`,borderRadius:"0 12px 12px 0"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-            <div style={{color:s.status==="used"?"#444":G.text,fontWeight:700,fontSize:14}}>{s.title}</div>
-            <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0,marginLeft:12}}>
-              <span style={{fontSize:10,padding:"3px 8px",borderRadius:10,border:`1px solid ${s.status==="used"?G.dim:`${G.purple}40`}`,color:s.status==="used"?"#333":G.purple,textTransform:"uppercase",letterSpacing:1}}>{s.status}</span>
-              {s.status==="unused" && <button onClick={()=>markUsed(s.id)} style={{background:`${G.purple}15`,border:`1px solid ${G.purple}40`,borderRadius:7,padding:"4px 11px",fontSize:11,color:G.purple,cursor:"pointer",fontFamily:"inherit"}}>Mark Used</button>}
+        <Card key={s.id} style={{marginBottom:12,borderLeft:`3px solid ${tab.c}`,borderRadius:"0 12px 12px 0"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,flexWrap:"wrap",gap:10}}>
+            <div style={{color:G.text,fontWeight:700,fontSize:14}}>{s.title}</div>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+              {filter==="pending" && (
+                <>
+                  <button onClick={()=>setStatus(s.id,"unused")} style={{background:`${G.green}15`,border:`1px solid ${G.green}40`,borderRadius:7,padding:"5px 13px",fontSize:11,color:G.green,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>Approve</button>
+                  <button onClick={()=>setStatus(s.id,"rejected")} style={{background:`${G.coral}15`,border:`1px solid ${G.coral}40`,borderRadius:7,padding:"5px 13px",fontSize:11,color:G.coral,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>Reject</button>
+                </>
+              )}
+              {filter==="unused" && (
+                <button onClick={()=>setStatus(s.id,"used")} style={{background:`${G.purple}15`,border:`1px solid ${G.purple}40`,borderRadius:7,padding:"5px 13px",fontSize:11,color:G.purple,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>Mark Used</button>
+              )}
+              {filter==="rejected" && (
+                <button onClick={()=>setStatus(s.id,"pending")} style={{background:"transparent",border:`1px solid ${G.dim}`,borderRadius:7,padding:"5px 13px",fontSize:11,color:G.muted,cursor:"pointer",fontFamily:"inherit"}}>Restore to Pending</button>
+              )}
             </div>
           </div>
           <div style={{background:`${G.coral}0e`,border:`1px solid ${G.coral}20`,borderRadius:7,padding:"10px 13px",marginBottom:8,color:"#ddd",fontSize:14,fontStyle:"italic"}}>"{s.hook}"</div>

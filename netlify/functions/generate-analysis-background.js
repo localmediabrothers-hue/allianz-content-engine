@@ -114,7 +114,7 @@ exports.handler = async (event) => {
         cta: s.cta || '',
         why: s.why || '',
         platform,
-        status: 'unused',
+        status: 'pending',
       }));
       const { error: scriptsError } = await supabase.from('scripts').insert(scriptRows);
       if (scriptsError) console.error('Scripts save error:', scriptsError.message);
