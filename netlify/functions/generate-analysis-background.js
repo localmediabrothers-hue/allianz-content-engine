@@ -7,11 +7,17 @@ function getSupabase() {
   return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 }
 
-async function analyseWithClaude(videoData) {
+async function analyseWithClaude(videoData, playbook) {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const prompt = `You are a viral content strategist for Allianz Housing Limited — a UK supported/transitional accommodation provider. Target audience: Universal Credit (UC) and DSS claimants seeking housing across the UK. Content posted to @allianzhousinguk on TikTok and Instagram. Filming in Coventry properties.
+  const playbookContext = playbook ? `
 
+LEARNED PATTERNS FROM ${playbook.analysesCount || 'past'} PREVIOUS ANALYSES — apply these where relevant to this video:
+${JSON.stringify(playbook, null, 2)}
+` : '';
+
+  const prompt = `You are a viral content strategist for Allianz Housing Limited — a UK supported/transitional accommodation provider. Target audience: Universal Credit (UC) and DSS claimants seeking housing across the UK. Content posted to @allianzhousinguk on TikTok and Instagram. Filming in Coventry properties.
+${playbookContext}
 Analyse this viral housing video data and return a JSON object — no markdown, no code fences, just raw JSON.
 
 VIDEO DATA:
@@ -78,7 +84,15 @@ exports.handler = async (event) => {
   const supabase = getSupabase();
 
   try {
-    const analysis = await analyseWithClaude(videoData);
+    const { data: intel } = await supabase
+      .from('intelligence')
+      .select('playbook, analyses_count')
+      .eq('workspace_id', ALLIANZ_WORKSPACE_ID)
+      .eq('status', 'done')
+      .maybeSingle();
+    const playbook = intel?.playbook ? { ...intel.playbook, analysesCount: intel.analyses_count } : null;
+
+    const analysis = await analyseWithClaude(videoData, playbook);
 
     const { error: updateErr } = await supabase
       .from('analyses')

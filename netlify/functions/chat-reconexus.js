@@ -37,6 +37,13 @@ exports.handler = async (event) => {
       .order('created_at', { ascending: false })
       .limit(30);
 
+    const { data: intel } = await supabase
+      .from('intelligence')
+      .select('playbook, analyses_count, generated_at')
+      .eq('workspace_id', ALLIANZ_WORKSPACE_ID)
+      .eq('status', 'done')
+      .maybeSingle();
+
     const analysisContext = (analyses || []).map(a => ({
       url: a.url,
       platform: a.platform,
@@ -65,6 +72,9 @@ SCRIPTS IN VAULT:
 - Total scripts generated: ${(scripts||[]).length}
 - Unused: ${(scripts||[]).filter(s=>s.status==="unused").length}
 - Used: ${(scripts||[]).filter(s=>s.status==="used").length}
+
+LEARNED PATTERN PLAYBOOK (from ${intel?.analyses_count || 0} analysed videos, last refreshed ${intel?.generated_at ? intel.generated_at.slice(0,10) : "never"}):
+${intel?.playbook ? JSON.stringify(intel.playbook, null, 2) : "No playbook yet — Faisal hasn't refreshed Intelligence, or there isn't enough analysed data yet."}
 
 YOUR PERSONALITY:
 - Direct, sharp, confident — like a world-class content strategist

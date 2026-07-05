@@ -1626,6 +1626,141 @@ function ContentPlan({ onGoTo }) {
   );
 }
 
+/* ─── INTELLIGENCE ───────────────────────────────────────────────────────── */
+function Intelligence() {
+  const [intel, setIntel] = useState(null);
+  const [doneCount, setDoneCount] = useState(0);
+  const [busy, setBusy] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [err, setErr] = useState('');
+
+  useEffect(() => { load(); }, []);
+
+  async function load() {
+    setBusy(true);
+    try {
+      const res = await fetch('/api/get-intelligence');
+      const d = await res.json();
+      setIntel(d.intelligence);
+      setDoneCount(d.doneAnalysesCount || 0);
+    } catch {}
+    setBusy(false);
+  }
+
+  async function refresh() {
+    setErr(''); setRefreshing(true);
+    try {
+      const res = await fetch('/api/generate-intelligence', { method: 'POST' });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Failed to start');
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const r2 = await fetch('/api/get-intelligence');
+        const d2 = await r2.json();
+        if (d2.intelligence?.status === 'done') { setIntel(d2.intelligence); setDoneCount(d2.doneAnalysesCount||0); break; }
+        if (d2.intelligence?.status === 'failed') throw new Error('Intelligence generation failed — try again');
+      }
+    } catch (e) { setErr(e.message); }
+    setRefreshing(false);
+  }
+
+  const playbook = intel?.playbook;
+  const isGenerating = intel?.status === 'generating' || refreshing;
+
+  return (
+    <div>
+      <Card style={{marginBottom:20,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:14}}>
+        <div>
+          <div style={{fontSize:13,color:G.muted}}>
+            {playbook ? `Built from ${intel.analyses_count} analyses · last refreshed ${new Date(intel.generated_at).toLocaleDateString('en-GB')}` : `${doneCount} completed analyses available`}
+          </div>
+          {doneCount < 3 && <div style={{color:G.coral,fontSize:12,marginTop:6}}>Need at least 3 completed analyses to build a playbook — analyse {3-doneCount} more video{3-doneCount===1?'':'s'}.</div>}
+        </div>
+        <button onClick={refresh} disabled={isGenerating || doneCount < 3}
+          style={{background:isGenerating||doneCount<3?G.card2:G.gold,border:'none',borderRadius:10,padding:'11px 22px',color:isGenerating||doneCount<3?G.muted:'#000',fontWeight:800,fontSize:13,cursor:isGenerating||doneCount<3?'not-allowed':'pointer',fontFamily:'inherit',whiteSpace:'nowrap'}}>
+          {isGenerating ? 'Analysing the analyses...' : playbook ? 'Refresh Intelligence →' : 'Build Playbook →'}
+        </button>
+      </Card>
+
+      {err && <div style={{color:G.coral,fontSize:13,marginBottom:16}}>⚠ {err}</div>}
+      {busy && <div style={{color:G.muted,fontSize:13}}>Loading...</div>}
+
+      {!busy && !playbook && !isGenerating && (
+        <Card><div style={{textAlign:'center',padding:'50px 20px'}}>
+          <Brain s={52}/>
+          <div style={{color:G.dim,fontSize:13,lineHeight:1.9,marginTop:20}}>
+            No playbook built yet<br/>Analyse a few videos, then hit "Build Playbook" to find the patterns
+          </div>
+        </div></Card>
+      )}
+
+      {playbook && (
+        <>
+          <Card style={{marginBottom:16}}>
+            <CLabel color={G.gold}>Overview</CLabel>
+            <div style={{color:'#ccc',fontSize:14,lineHeight:1.8}}>{playbook.summary}</div>
+          </Card>
+
+          <Card style={{marginBottom:16}}>
+            <CLabel color={G.cyan}>Top Hook Formulas</CLabel>
+            {(playbook.topHookFormulas||[]).map((h,i)=>(
+              <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:G.card2,borderRadius:8,padding:'11px 14px',marginBottom:8,gap:12}}>
+                <div style={{color:'#ddd',fontSize:13,flex:1}}>{h.formula}</div>
+                <div style={{display:'flex',gap:10,flexShrink:0}}>
+                  <span style={{fontSize:11,color:G.muted}}>{h.frequency}x used</span>
+                  <span style={{fontFamily:"'Nunito',sans-serif",fontWeight:800,color:G.gold,fontSize:14}}>{h.avgViralScore}/10</span>
+                </div>
+              </div>
+            ))}
+          </Card>
+
+          <Card style={{marginBottom:16}}>
+            <CLabel color={G.green}>Emotion Breakdown</CLabel>
+            <div style={{background:`${G.green}0a`,border:`1px solid ${G.green}22`,borderRadius:8,padding:'11px 14px',marginBottom:12,fontSize:13,color:G.green}}>
+              Best performing emotion: <strong>{playbook.bestEmotion}</strong>
+            </div>
+            {(playbook.emotionBreakdown||[]).map((e,i)=>(
+              <div key={i} style={{display:'flex',justifyContent:'space-between',background:G.card2,borderRadius:8,padding:'10px 14px',marginBottom:6}}>
+                <span style={{color:'#ccc',fontSize:13}}>{e.emotion}</span>
+                <span style={{color:G.muted,fontSize:12}}>{e.count} videos · avg {e.avgViralScore}/10</span>
+              </div>
+            ))}
+          </Card>
+
+          {playbook.platformInsights && (
+            <Card style={{marginBottom:16}}>
+              <CLabel color={G.purple}>Platform Insights</CLabel>
+              <div style={{color:'#ccc',fontSize:14,lineHeight:1.8}}>{playbook.platformInsights}</div>
+            </Card>
+          )}
+
+          <Card style={{marginBottom:16}}>
+            <CLabel color={G.gold}>Recommendations</CLabel>
+            {(playbook.recommendations||[]).map((r,i)=>(
+              <div key={i} style={{display:'flex',gap:12,alignItems:'flex-start',padding:'10px 0',borderBottom:i<playbook.recommendations.length-1?`1px solid ${G.border}`:'none'}}>
+                <span style={{fontFamily:"'Nunito',sans-serif",fontSize:11,color:G.gold,flexShrink:0}}>{String(i+1).padStart(2,'0')}</span>
+                <div style={{color:'#ccc',fontSize:13,lineHeight:1.6}}>{r}</div>
+              </div>
+            ))}
+          </Card>
+
+          {playbook.recurringWarnings?.length > 0 && (
+            <Card style={{borderLeft:`3px solid ${G.coral}`,borderRadius:'0 12px 12px 0'}}>
+              <CLabel color={G.coral}>Recurring Warning Signals</CLabel>
+              {playbook.recurringWarnings.map((w,i)=>(
+                <div key={i} style={{display:'flex',gap:10,padding:'8px 0'}}>
+                  <span style={{color:G.coral}}>⚠</span>
+                  <div style={{color:'#999',fontSize:13,lineHeight:1.5}}>{w}</div>
+                </div>
+              ))}
+            </Card>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ─── PLACEHOLDERS ───────────────────────────────────────────────────────── */
 function Placeholder({ color, label, desc }) {
   return (
@@ -1678,7 +1813,7 @@ export default function App() {
           {sec==="plan"    && <ContentPlan onGoTo={setSec}/>}
           {sec==="rooms"   && <Rooms/>}
           {sec==="channel" && <Placeholder color={G.green}  label="my channel"   desc={"Coming next build\nWill scrape @allianzhousinguk and score your last 30 videos"}/>}
-          {sec==="intel"   && <Placeholder color={G.gold}   label="intelligence" desc={"Reconexus builds pattern memory from every video you analyse\nAnalyse more videos to feed the engine"}/>}
+          {sec==="intel"   && <Intelligence/>}
           {sec==="comp"    && <Competitors/>}
           {sec==="vault"   && <Vault/>}
           {sec==="chat"    && <ChatReconexus/>}
