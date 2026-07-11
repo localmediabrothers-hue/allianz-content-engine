@@ -25,7 +25,7 @@ exports.handler = async (event) => {
   const tripsWithCounts = await Promise.all((trips || []).map(async (trip) => {
     const { data: scripts } = await supabase
       .from('scripts')
-      .select('id, title, hook, body, cta, why, status, property_note, trip_id')
+      .select('id, title, hook, body, cta, why, status, property, property_note, trip_id, batch_id')
       .eq('trip_id', trip.id);
     return { ...trip, scripts: scripts || [] };
   }));

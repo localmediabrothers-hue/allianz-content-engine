@@ -1722,11 +1722,18 @@ function ContentPlan({ onGoTo }) {
             )}
           </Card>
 
-          {/* Scripts already assigned */}
-          {assignedScripts.length > 0 && (
-            <div style={{marginBottom:16}}>
-              <CLabel color={G.purple}>Selected Scripts for This Trip</CLabel>
-              {assignedScripts.map((s,i) => (
+          {/* Scripts already assigned — grouped by property so a multi-property trip stays organised */}
+          {assignedScripts.length > 0 && (() => {
+            const groups = {};
+            const general = [];
+            assignedScripts.forEach(s => {
+              if (s.property) { (groups[s.property] = groups[s.property] || []).push(s); }
+              else general.push(s);
+            });
+            const propertyNames = Object.keys(groups);
+
+            function renderScriptCard(s) {
+              return (
                 <Card key={s.id} style={{marginBottom:10,borderLeft:`3px solid ${G.purple}`,borderRadius:'0 12px 12px 0'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
                     <div style={{fontWeight:700,color:G.text,fontSize:14}}>{s.title}</div>
@@ -1756,9 +1763,31 @@ function ContentPlan({ onGoTo }) {
                     <div style={{fontSize:11,color:G.dim}}>No rooms marked "needs filling" — add one in the Rooms tab.</div>
                   )}
                 </Card>
-              ))}
-            </div>
-          )}
+              );
+            }
+
+            return (
+              <div style={{marginBottom:16}}>
+                <CLabel color={G.purple}>Selected Scripts for This Trip ({assignedScripts.length})</CLabel>
+                {propertyNames.map(pname => {
+                  // Overview script (property_note === property name exactly) shown first
+                  const sorted = [...groups[pname]].sort((a,b) => (a.property_note===pname?-1:0) - (b.property_note===pname?-1:0));
+                  return (
+                    <div key={pname} style={{marginBottom:20,border:`1px solid ${G.purple}30`,borderRadius:14,padding:16,background:`${G.purple}06`}}>
+                      <div style={{fontSize:13,fontWeight:800,color:G.purple,marginBottom:12}}>📍 {pname} ({sorted.length} script{sorted.length>1?'s':''})</div>
+                      {sorted.map(renderScriptCard)}
+                    </div>
+                  );
+                })}
+                {general.length > 0 && (
+                  <>
+                    {propertyNames.length > 0 && <CLabel color={G.gold}>Other Scripts</CLabel>}
+                    {general.map(renderScriptCard)}
+                  </>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Property Pack scripts — already have their room baked in, just add directly */}
           {scriptsNeeded > 0 && preMatchedScripts.length > 0 && (

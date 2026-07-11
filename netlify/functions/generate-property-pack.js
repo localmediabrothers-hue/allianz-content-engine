@@ -38,9 +38,9 @@ exports.handler = async (event) => {
 
   // One overview script + one script per room, all placeholders until the background job fills them in
   const placeholders = [
-    { workspace_id: ALLIANZ_WORKSPACE_ID, batch_id: batchId, title: `Generating overview — ${property}`, hook: '', body: '', original_body: '', cta: '', why: '', platform, status: 'pending', property_note: property },
+    { workspace_id: ALLIANZ_WORKSPACE_ID, batch_id: batchId, title: `Generating overview — ${property}`, hook: '', body: '', original_body: '', cta: '', why: '', platform, status: 'pending', property, property_note: property },
     ...rooms.map(r => ({
-      workspace_id: ALLIANZ_WORKSPACE_ID, batch_id: batchId, title: `Generating — ${r.name}`, hook: '', body: '', original_body: '', cta: '', why: '', platform, status: 'pending',
+      workspace_id: ALLIANZ_WORKSPACE_ID, batch_id: batchId, title: `Generating — ${r.name}`, hook: '', body: '', original_body: '', cta: '', why: '', platform, status: 'pending', property,
       property_note: `${r.name}${r.description ? ` — ${r.description}` : ''}`,
     })),
   ];
