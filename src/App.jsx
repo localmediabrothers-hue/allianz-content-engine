@@ -780,6 +780,16 @@ function Competitors({ onAnalyseVideo }) {
     setAddBusy(false);
   }
 
+  async function removeCompetitor(c) {
+    if (!confirm(`Remove ${c.handle}? This deletes all their scraped videos too.`)) return;
+    await fetch('/api/delete-competitor', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ competitorId: c.id }),
+    });
+    setSelected(null);
+    await load();
+  }
+
   async function startScrape(c) {
     setScraping(prev => ({ ...prev, [c.id]: true }));
     try {
@@ -909,6 +919,10 @@ function Competitors({ onAnalyseVideo }) {
             <button onClick={() => !isScraping && startScrape(selected)} disabled={isScraping}
               style={{background:isScraping?G.card2:`${G.coral}14`,border:`1px solid ${isScraping?G.border:G.coral}`,borderRadius:10,padding:'9px 18px',color:isScraping?G.muted:G.coral,fontSize:12,fontWeight:700,cursor:isScraping?'not-allowed':'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:6}}>
               {isScraping?<><span style={{width:6,height:6,borderRadius:'50%',background:G.coral,display:'inline-block',animation:'pulse 1s infinite'}}/>Scraping...</>:'Scrape Again →'}
+            </button>
+            <button onClick={() => removeCompetitor(selected)}
+              style={{background:'transparent',border:`1px solid ${G.dim}`,borderRadius:10,padding:'9px 14px',color:G.muted,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>
+              Remove
             </button>
           </div>
         </div>
