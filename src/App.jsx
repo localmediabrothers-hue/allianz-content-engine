@@ -1355,6 +1355,9 @@ function ContentPlan({ onGoTo }) {
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [selectedProperties, setSelectedProperties] = useState(null); // null = all properties
   const [completeBusy, setCompleteBusy] = useState(false);
+  const [editingTarget, setEditingTarget] = useState(false);
+  const [targetInput, setTargetInput] = useState(4);
+  const [targetSaveBusy, setTargetSaveBusy] = useState(false);
 
   useEffect(() => { loadTrips(); loadScripts(); loadRooms(); }, []);
 
@@ -1442,6 +1445,23 @@ function ContentPlan({ onGoTo }) {
     setManualMode(false);
   }
 
+  async function saveTarget(trip) {
+    const n = parseInt(targetInput);
+    if (!n || n < 1) return;
+    setTargetSaveBusy(true);
+    try {
+      const res = await fetch('/api/update-trip', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tripId: trip.id, scriptsTarget: n }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Failed');
+      setEditingTarget(false);
+      await loadTrips();
+    } catch (e) { alert(e.message); }
+    setTargetSaveBusy(false);
+  }
+
   async function completeTrip(trip) {
     if (!confirm(`Mark ${new Date(trip.trip_date).toLocaleDateString('en-GB')} as complete? Any approved scripts you didn't film will go back into the pool for your next trip.`)) return;
     setCompleteBusy(true);
@@ -1523,11 +1543,13 @@ function ContentPlan({ onGoTo }) {
             </div>
             <div>
               <div style={{fontSize:11,color:G.muted,marginBottom:5}}>Scripts Target</div>
-              <div style={{display:'flex',gap:6}}>
+              <div style={{display:'flex',gap:6,alignItems:'center'}}>
                 {[2,3,4,5].map(n=>(
                   <button key={n} onClick={()=>setNewTarget(n)}
                     style={{background:newTarget===n?`${G.green}18`:'transparent',border:`1px solid ${newTarget===n?G.green:G.dim}`,borderRadius:8,padding:'8px 14px',color:newTarget===n?G.green:G.muted,cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit'}}>{n}</button>
                 ))}
+                <input type="number" min="1" value={newTarget} onChange={e=>setNewTarget(parseInt(e.target.value)||1)}
+                  style={{width:56,background:G.card2,border:`1px solid ${G.border}`,borderRadius:8,padding:'8px 10px',color:G.text,fontSize:13,fontWeight:700,outline:'none',fontFamily:'inherit',textAlign:'center'}}/>
               </div>
             </div>
           </div>
@@ -1578,10 +1600,23 @@ function ContentPlan({ onGoTo }) {
                   </div>
                 </div>
                 <div style={{textAlign:'center'}}>
-                  <div style={{fontFamily:"'Nunito',sans-serif",fontSize:32,fontWeight:900,color:scriptsNeeded===0?G.green:G.gold,lineHeight:1}}>
-                    {assignedScripts.length}/{trip.scripts_target}
-                  </div>
-                  <div style={{fontSize:10,color:G.muted,textTransform:'uppercase',letterSpacing:1}}>Scripts</div>
+                  {!editingTarget ? (
+                    <div style={{fontFamily:"'Nunito',sans-serif",fontSize:32,fontWeight:900,color:scriptsNeeded===0?G.green:G.gold,lineHeight:1,cursor:'pointer'}}
+                      onClick={()=>{setTargetInput(trip.scripts_target);setEditingTarget(true);}} title="Click to change target">
+                      {assignedScripts.length}/{trip.scripts_target}
+                    </div>
+                  ) : (
+                    <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                      <input type="number" min="1" value={targetInput} onChange={e=>setTargetInput(e.target.value)}
+                        onKeyDown={e=>e.key==='Enter'&&saveTarget(trip)}
+                        style={{width:52,background:G.card2,border:`1px solid ${G.gold}`,borderRadius:6,padding:'4px 6px',color:G.text,fontSize:16,fontFamily:"'Nunito',sans-serif",fontWeight:800,textAlign:'center',outline:'none'}}/>
+                      <button onClick={()=>saveTarget(trip)} disabled={targetSaveBusy}
+                        style={{background:G.gold,border:'none',borderRadius:6,padding:'5px 8px',color:'#000',fontSize:11,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>✓</button>
+                      <button onClick={()=>setEditingTarget(false)}
+                        style={{background:'transparent',border:`1px solid ${G.dim}`,borderRadius:6,padding:'5px 8px',color:G.muted,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>×</button>
+                    </div>
+                  )}
+                  <div style={{fontSize:10,color:G.muted,textTransform:'uppercase',letterSpacing:1,marginTop:editingTarget?4:0}}>Scripts{!editingTarget && ' (click to edit)'}</div>
                 </div>
               </div>
             </div>
