@@ -1584,7 +1584,13 @@ function ContentPlan({ onGoTo }) {
   const daysUntil = trip ? Math.ceil((new Date(trip.trip_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
   const assignedScripts = trip ? (trip.scripts || []) : [];
   const scriptsNeeded = trip ? Math.max(0, (trip.scripts_target || 4) - assignedScripts.length) : 0;
-  const unassignedScripts = allScripts.filter(s => !s.trip_id && s.status === 'unused');
+  // Property Pack scripts already have their room baked in from generation (property_note
+  // set, body already written for that specific room) — they must NOT go through the
+  // match engine, which would re-customise them onto an unrelated room and overwrite
+  // correct content. They get their own "already property-specific" pool instead.
+  const allUnassigned = allScripts.filter(s => !s.trip_id && s.status === 'unused');
+  const preMatchedScripts = allUnassigned.filter(s => s.batch_id);
+  const unassignedScripts = allUnassigned.filter(s => !s.batch_id);
   const needsFillingRooms = rooms.filter(r => r.status === 'needs_filling');
   const propertyOptions = [...new Set(needsFillingRooms.filter(r => r.property).map(r => r.property))];
   const activeProperties = selectedProperties === null ? propertyOptions : selectedProperties;
@@ -1749,6 +1755,25 @@ function ContentPlan({ onGoTo }) {
                   ) : (
                     <div style={{fontSize:11,color:G.dim}}>No rooms marked "needs filling" — add one in the Rooms tab.</div>
                   )}
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Property Pack scripts — already have their room baked in, just add directly */}
+          {scriptsNeeded > 0 && preMatchedScripts.length > 0 && (
+            <div style={{marginBottom:16}}>
+              <CLabel color={G.purple}>Property-Specific Scripts — Already Matched, Ready to Add</CLabel>
+              {preMatchedScripts.map(s => (
+                <Card key={s.id} style={{marginBottom:10,cursor:'pointer',borderLeft:`3px solid ${G.purple}`,borderRadius:'0 12px 12px 0'}} onClick={()=>toggleScript(s,trip.id)}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,color:G.text,fontSize:13,marginBottom:4}}>{s.title}</div>
+                      {s.property_note && <div style={{color:G.purple,fontSize:11,marginBottom:6}}>{s.property_note}</div>}
+                      <div style={{color:'#777',fontSize:12,lineHeight:1.6}}>{s.body?.slice(0,140)}{s.body?.length>140?'...':''}</div>
+                    </div>
+                    <button style={{background:`${G.purple}14`,border:`1px solid ${G.purple}40`,borderRadius:8,padding:'7px 14px',color:G.purple,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>Add →</button>
+                  </div>
                 </Card>
               ))}
             </div>
