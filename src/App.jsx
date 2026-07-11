@@ -950,8 +950,10 @@ function Competitors({ onAnalyseVideo }) {
               <Card key={a.id} style={{marginBottom:12}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:14}}>
                   <div>
-                    <div style={{fontSize:13,color:G.muted,marginBottom:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:360}}>{a.url}</div>
-                    <div style={{fontSize:11,color:G.dim}}>{new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
+                    <div style={{fontSize:13,color:G.text,fontWeight:600,marginBottom:4,overflow:'hidden',textOverflow:'ellipsis',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',maxWidth:400}}>
+                      {a.video_data?.caption || a.url}
+                    </div>
+                    <a href={a.url} target="_blank" rel="noreferrer" style={{fontSize:11,color:G.dim,textDecoration:'none'}}>{new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})} · view video ↗</a>
                   </div>
                   <div style={{display:'flex',gap:10,alignItems:'center',flexShrink:0}}>
                     <div style={{textAlign:'center'}}>
