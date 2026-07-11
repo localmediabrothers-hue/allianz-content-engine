@@ -1192,9 +1192,10 @@ function Rooms() {
                 placeholder="e.g. Flat 2A, 64 Coventry Road"
                 style={{flex:'0 0 260px',background:G.card2,border:`1px solid ${G.border}`,borderRadius:10,padding:'12px 16px',color:G.text,fontSize:14,outline:'none',fontFamily:'inherit'}}/>
               <input value={desc} onChange={e=>setDesc(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addRoom()}
-                placeholder="En-suite, double bed, DSS accepted, move in 48hrs..."
+                placeholder="En-suite, double bed, move in 48hrs, top floor with a view..."
                 style={{flex:1,minWidth:220,background:G.card2,border:`1px solid ${G.border}`,borderRadius:10,padding:'12px 16px',color:G.text,fontSize:14,outline:'none',fontFamily:'inherit'}}/>
             </div>
+            <div style={{fontSize:11,color:G.dim,marginBottom:12}}>No need to mention UC/DSS or "no deposit" here — every property already qualifies, and every script already says so. Just describe what's actually different about this room.</div>
             <div style={{display:'flex',gap:8}}>
               <button onClick={addRoom} disabled={!name.trim()||saveBusy}
                 style={{background:!name.trim()||saveBusy?G.card2:G.cyan,border:'none',borderRadius:10,padding:'10px 20px',color:!name.trim()||saveBusy?G.muted:'#000',fontWeight:800,fontSize:13,cursor:!name.trim()||saveBusy?'not-allowed':'pointer',fontFamily:'inherit'}}>
