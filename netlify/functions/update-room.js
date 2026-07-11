@@ -13,8 +13,8 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: cors, body: '' };
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers: cors, body: JSON.stringify({ error: 'Method not allowed' }) };
 
-  let roomId, name, description, status;
-  try { ({ roomId, name, description, status } = JSON.parse(event.body)); } catch {
+  let roomId, name, description, status, property;
+  try { ({ roomId, name, description, status, property } = JSON.parse(event.body)); } catch {
     return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'Invalid JSON' }) };
   }
   if (!roomId) return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'roomId required' }) };
@@ -25,6 +25,7 @@ exports.handler = async (event) => {
   if (name !== undefined) updates.name = name;
   if (description !== undefined) updates.description = description;
   if (status !== undefined) updates.status = status;
+  if (property !== undefined) updates.property = property;
 
   const { data, error } = await supabase
     .from('rooms')

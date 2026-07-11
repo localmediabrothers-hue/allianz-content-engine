@@ -111,6 +111,7 @@ exports.handler = async (event) => {
         title: s.title || '',
         hook: s.hook || '',
         body: s.body || '',
+        original_body: s.body || '',
         cta: s.cta || '',
         why: s.why || '',
         platform,

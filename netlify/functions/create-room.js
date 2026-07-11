@@ -13,8 +13,8 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: cors, body: '' };
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers: cors, body: JSON.stringify({ error: 'Method not allowed' }) };
 
-  let name, description;
-  try { ({ name, description = '' } = JSON.parse(event.body)); } catch {
+  let name, description, property;
+  try { ({ name, description = '', property = '' } = JSON.parse(event.body)); } catch {
     return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'Invalid JSON' }) };
   }
   if (!name || !name.trim()) return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'name required' }) };
@@ -23,7 +23,7 @@ exports.handler = async (event) => {
 
   const { data, error } = await supabase
     .from('rooms')
-    .insert({ workspace_id: ALLIANZ_WORKSPACE_ID, name: name.trim(), description: description.trim(), status: 'needs_filling' })
+    .insert({ workspace_id: ALLIANZ_WORKSPACE_ID, name: name.trim(), description: description.trim(), property: property.trim(), status: 'needs_filling' })
     .select()
     .single();
 

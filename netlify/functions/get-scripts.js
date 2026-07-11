@@ -25,12 +25,13 @@ exports.handler = async (event) => {
 
     let query = supabase
       .from('scripts')
-      .select('id, analysis_id, title, hook, body, cta, why, platform, status, views_after_use, trip_id, property_note, created_at', { count: 'exact' })
+      .select('id, analysis_id, title, hook, body, cta, why, platform, status, views_after_use, trip_id, property_note, batch_id, created_at', { count: 'exact' })
       .eq('workspace_id', ALLIANZ_WORKSPACE_ID)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (status) query = query.eq('status', status);
+    if (params.batchId) query = query.eq('batch_id', params.batchId);
 
     const { data, error, count } = await query;
     if (error) throw error;

@@ -1120,7 +1120,11 @@ function Rooms() {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
+  const [property, setProperty] = useState('');
   const [saveBusy, setSaveBusy] = useState(false);
+  const [packBusy, setPackBusy] = useState({});
+  const [packPlatform, setPackPlatform] = useState({});
+  const [packResult, setPackResult] = useState({});
 
   useEffect(() => { load(); }, []);
 
@@ -1140,7 +1144,7 @@ function Rooms() {
     try {
       const res = await fetch('/api/create-room', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description: desc }),
+        body: JSON.stringify({ name, description: desc, property }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || 'Failed');
@@ -1168,8 +1172,35 @@ function Rooms() {
     await load();
   }
 
+  async function generatePack(propertyName) {
+    const platform = packPlatform[propertyName] || 'tiktok';
+    setPackBusy(prev => ({ ...prev, [propertyName]: true }));
+    setPackResult(prev => { const n = { ...prev }; delete n[propertyName]; return n; });
+    try {
+      const res = await fetch('/api/generate-property-pack', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ property: propertyName, platform }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Failed to start');
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const r2 = await fetch(`/api/get-scripts?batchId=${d.batchId}&limit=${d.count}`);
+        const d2 = await r2.json();
+        const rows = d2.scripts || [];
+        if (rows.length === d.count && rows.every(s => s.body || s.title === 'GENERATION_FAILED')) {
+          if (rows.some(s => s.title === 'GENERATION_FAILED')) throw new Error('Generation failed — try again');
+          setPackResult(prev => ({ ...prev, [propertyName]: rows.length }));
+          break;
+        }
+      }
+    } catch (e) { alert(e.message); }
+    setPackBusy(prev => { const n = { ...prev }; delete n[propertyName]; return n; });
+  }
+
   const needsFilling = rooms.filter(r => r.status === 'needs_filling');
   const filled = rooms.filter(r => r.status === 'filled');
+  const properties = [...new Set(needsFilling.filter(r => r.property).map(r => r.property))];
 
   return (
     <div>
@@ -1188,20 +1219,23 @@ function Rooms() {
           <Card style={{borderColor:`${G.cyan}40`}}>
             <CLabel color={G.cyan}>Add a Free Room</CLabel>
             <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+              <input value={property} onChange={e=>setProperty(e.target.value)}
+                placeholder="Property — e.g. 64 Coventry Road"
+                style={{flex:'0 0 220px',background:G.card2,border:`1px solid ${G.border}`,borderRadius:10,padding:'12px 16px',color:G.text,fontSize:14,outline:'none',fontFamily:'inherit'}}/>
               <input value={name} onChange={e=>setName(e.target.value)}
-                placeholder="e.g. Flat 2A, 64 Coventry Road"
-                style={{flex:'0 0 260px',background:G.card2,border:`1px solid ${G.border}`,borderRadius:10,padding:'12px 16px',color:G.text,fontSize:14,outline:'none',fontFamily:'inherit'}}/>
+                placeholder="Room — e.g. Flat 2A"
+                style={{flex:'0 0 200px',background:G.card2,border:`1px solid ${G.border}`,borderRadius:10,padding:'12px 16px',color:G.text,fontSize:14,outline:'none',fontFamily:'inherit'}}/>
               <input value={desc} onChange={e=>setDesc(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addRoom()}
                 placeholder="En-suite, double bed, move in 48hrs, top floor with a view..."
                 style={{flex:1,minWidth:220,background:G.card2,border:`1px solid ${G.border}`,borderRadius:10,padding:'12px 16px',color:G.text,fontSize:14,outline:'none',fontFamily:'inherit'}}/>
             </div>
-            <div style={{fontSize:11,color:G.dim,marginBottom:12}}>No need to mention UC/DSS or "no deposit" here — every property already qualifies, and every script already says so. Just describe what's actually different about this room.</div>
+            <div style={{fontSize:11,color:G.dim,marginBottom:12}}>No need to mention UC/DSS or "no deposit" here — every property already qualifies, and every script already says so. Just describe what's actually different about this room. Property name groups rooms together so you can generate a full content set for one address at once.</div>
             <div style={{display:'flex',gap:8}}>
               <button onClick={addRoom} disabled={!name.trim()||saveBusy}
                 style={{background:!name.trim()||saveBusy?G.card2:G.cyan,border:'none',borderRadius:10,padding:'10px 20px',color:!name.trim()||saveBusy?G.muted:'#000',fontWeight:800,fontSize:13,cursor:!name.trim()||saveBusy?'not-allowed':'pointer',fontFamily:'inherit'}}>
                 {saveBusy?'Adding...':'Add Room →'}
               </button>
-              <button onClick={()=>{setAdding(false);setName('');setDesc('');}}
+              <button onClick={()=>{setAdding(false);setName('');setDesc('');setProperty('');}}
                 style={{background:'transparent',border:`1px solid ${G.border}`,borderRadius:10,padding:'10px 18px',color:G.muted,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
             </div>
           </Card>
@@ -1218,6 +1252,38 @@ function Rooms() {
         </div></Card>
       )}
 
+      {properties.length > 0 && (
+        <div style={{marginBottom:24}}>
+          <CLabel color={G.purple}>Generate a Full Content Set for One Property</CLabel>
+          {properties.map(p => {
+            const roomCount = needsFilling.filter(r => r.property === p).length;
+            const busyThis = !!packBusy[p];
+            const result = packResult[p];
+            return (
+              <Card key={p} style={{marginBottom:10}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
+                  <div>
+                    <div style={{fontWeight:700,color:G.text,fontSize:14}}>{p}</div>
+                    <div style={{color:G.muted,fontSize:12,marginTop:2}}>{roomCount} room{roomCount>1?'s':''} needing filling → 1 overview + {roomCount} mini script{roomCount>1?'s':''}</div>
+                  </div>
+                  <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                    {['tiktok','instagram'].map(pl=>(
+                      <button key={pl} onClick={()=>setPackPlatform(prev=>({...prev,[p]:pl}))}
+                        style={{background:(packPlatform[p]||'tiktok')===pl?`${G.cyan}18`:'transparent',border:`1px solid ${(packPlatform[p]||'tiktok')===pl?G.cyan:G.dim}`,borderRadius:20,padding:'4px 12px',fontSize:11,color:(packPlatform[p]||'tiktok')===pl?G.cyan:G.muted,cursor:'pointer',fontFamily:'inherit',textTransform:'capitalize'}}>{pl}</button>
+                    ))}
+                    <button onClick={()=>generatePack(p)} disabled={busyThis}
+                      style={{background:busyThis?G.card2:G.purple,border:'none',borderRadius:8,padding:'9px 16px',color:busyThis?G.muted:'#fff',fontWeight:800,fontSize:12,cursor:busyThis?'not-allowed':'pointer',fontFamily:'inherit',whiteSpace:'nowrap'}}>
+                      {busyThis?'Generating...':'Generate Pack →'}
+                    </button>
+                  </div>
+                </div>
+                {result && <div style={{marginTop:10,background:`${G.green}0a`,border:`1px solid ${G.green}22`,borderRadius:8,padding:'9px 14px',fontSize:12,color:G.green}}>{result} scripts generated — go to Script Vault → Pending Review to approve them.</div>}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
       {needsFilling.length > 0 && (
         <div style={{marginBottom:20}}>
           <CLabel color={G.coral}>Needs Filling</CLabel>
@@ -1225,6 +1291,7 @@ function Rooms() {
             <Card key={r.id} style={{marginBottom:10,borderLeft:`3px solid ${G.coral}`,borderRadius:'0 12px 12px 0'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
                 <div style={{flex:1}}>
+                  {r.property && <div style={{color:G.muted,fontSize:11,marginBottom:2,textTransform:'uppercase',letterSpacing:1}}>{r.property}</div>}
                   <div style={{fontWeight:700,color:G.text,fontSize:14,marginBottom:5}}>{r.name}</div>
                   {r.description && <div style={{color:G.muted,fontSize:13,lineHeight:1.5}}>{r.description}</div>}
                 </div>
@@ -1247,6 +1314,7 @@ function Rooms() {
             <Card key={r.id} style={{marginBottom:10,opacity:.6}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
                 <div style={{flex:1}}>
+                  {r.property && <div style={{color:G.dim,fontSize:11,marginBottom:2,textTransform:'uppercase',letterSpacing:1}}>{r.property}</div>}
                   <div style={{fontWeight:700,color:'#888',fontSize:14,marginBottom:5}}>{r.name}</div>
                   {r.description && <div style={{color:G.dim,fontSize:13,lineHeight:1.5}}>{r.description}</div>}
                 </div>
@@ -1285,6 +1353,8 @@ function ContentPlan({ onGoTo }) {
   const [proposal, setProposal] = useState(null);
   const [manualMode, setManualMode] = useState(false);
   const [confirmBusy, setConfirmBusy] = useState(false);
+  const [selectedProperties, setSelectedProperties] = useState(null); // null = all properties
+  const [completeBusy, setCompleteBusy] = useState(false);
 
   useEffect(() => { loadTrips(); loadScripts(); loadRooms(); }, []);
 
@@ -1364,12 +1434,28 @@ function ContentPlan({ onGoTo }) {
 
   function roomLabel(room) { return `${room.name}${room.description ? ` — ${room.description}` : ''}`; }
 
-  function buildProposal(scriptsNeeded) {
+  function buildProposal(scriptsNeeded, roomPool) {
     const availableScripts = unassignedScripts.slice(0, scriptsNeeded);
-    const availableRooms = needsFillingRooms.slice(0, scriptsNeeded);
+    const availableRooms = roomPool.slice(0, scriptsNeeded);
     const pairs = availableScripts.map((script, i) => ({ script, roomId: availableRooms[i]?.id || null }));
     setProposal(pairs);
     setManualMode(false);
+  }
+
+  async function completeTrip(trip) {
+    if (!confirm(`Mark ${new Date(trip.trip_date).toLocaleDateString('en-GB')} as complete? Any approved scripts you didn't film will go back into the pool for your next trip.`)) return;
+    setCompleteBusy(true);
+    try {
+      const res = await fetch('/api/complete-trip', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tripId: trip.id }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Failed');
+      await loadTrips(); await loadScripts();
+      alert(d.releasedCount > 0 ? `Trip marked complete. ${d.releasedCount} unfilmed script${d.releasedCount>1?'s':''} released back to Approved.` : 'Trip marked complete.');
+    } catch (e) { alert(e.message); }
+    setCompleteBusy(false);
   }
 
   async function confirmProposal(trip) {
@@ -1402,6 +1488,9 @@ function ContentPlan({ onGoTo }) {
   const scriptsNeeded = trip ? Math.max(0, (trip.scripts_target || 4) - assignedScripts.length) : 0;
   const unassignedScripts = allScripts.filter(s => !s.trip_id && s.status === 'unused');
   const needsFillingRooms = rooms.filter(r => r.status === 'needs_filling');
+  const propertyOptions = [...new Set(needsFillingRooms.filter(r => r.property).map(r => r.property))];
+  const activeProperties = selectedProperties === null ? propertyOptions : selectedProperties;
+  const matchRoomPool = propertyOptions.length === 0 ? needsFillingRooms : needsFillingRooms.filter(r => !r.property || activeProperties.includes(r.property));
   const dataReady = scriptsLoaded && roomsLoaded;
   const enoughScripts = unassignedScripts.length >= scriptsNeeded;
 
@@ -1410,8 +1499,8 @@ function ContentPlan({ onGoTo }) {
       {/* Trip selector / create */}
       <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:20,flexWrap:'wrap'}}>
         <div style={{fontSize:13,color:G.muted,fontWeight:700}}>Filming Trip:</div>
-        {trips.filter(t => t.trip_date >= today).map(t => (
-          <button key={t.id} onClick={() => { setActiveTrip(t); setProposal(null); }}
+        {trips.filter(t => t.trip_date >= today && t.status !== 'completed').map(t => (
+          <button key={t.id} onClick={() => { setActiveTrip(t); setProposal(null); setSelectedProperties(null); }}
             style={{background:activeTrip?.id===t.id?`${G.green}18`:'transparent',border:`1px solid ${activeTrip?.id===t.id?G.green:G.dim}`,borderRadius:20,padding:'5px 14px',fontSize:12,color:activeTrip?.id===t.id?G.green:G.muted,cursor:'pointer',fontFamily:'inherit'}}>
             {new Date(t.trip_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'})} · {t.scripts?.length||0}/{t.scripts_target}
           </button>
@@ -1501,6 +1590,17 @@ function ContentPlan({ onGoTo }) {
                 All scripts selected — you're ready to film.
               </div>
             )}
+            {trip.status !== 'completed' && (
+              <div style={{marginTop:12}}>
+                <button onClick={()=>completeTrip(trip)} disabled={completeBusy}
+                  style={{background:'transparent',border:`1px solid ${G.dim}`,borderRadius:8,padding:'8px 16px',color:G.muted,fontSize:12,fontWeight:700,cursor:completeBusy?'not-allowed':'pointer',fontFamily:'inherit'}}>
+                  {completeBusy?'Completing...':'Mark Trip Complete →'}
+                </button>
+              </div>
+            )}
+            {trip.status === 'completed' && (
+              <div style={{marginTop:12,background:`${G.dim}20`,borderRadius:8,padding:'8px 14px',fontSize:12,color:G.muted,display:'inline-block'}}>✓ Trip Complete</div>
+            )}
           </Card>
 
           {/* Scripts already assigned */}
@@ -1557,13 +1657,31 @@ function ContentPlan({ onGoTo }) {
                 </div>
               ) : (
                 <div>
+                  {propertyOptions.length > 1 && (
+                    <div style={{marginBottom:14}}>
+                      <div style={{fontSize:11,color:G.muted,marginBottom:8}}>Only film at these properties this trip:</div>
+                      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                        {propertyOptions.map(p => {
+                          const on = activeProperties.includes(p);
+                          return (
+                            <button key={p} onClick={()=>{
+                              const next = on ? activeProperties.filter(x=>x!==p) : [...activeProperties, p];
+                              setSelectedProperties(next.length === propertyOptions.length ? null : next);
+                            }} style={{background:on?`${G.purple}18`:'transparent',border:`1px solid ${on?G.purple:G.dim}`,borderRadius:20,padding:'5px 13px',fontSize:11,color:on?G.purple:G.dim,cursor:'pointer',fontFamily:'inherit'}}>
+                              {p}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <div style={{fontSize:14,color:'#ccc',lineHeight:1.7,marginBottom:14}}>
                     I have <strong style={{color:G.gold}}>{unassignedScripts.length}</strong> unused scripts ready, and{' '}
-                    <strong style={{color:G.coral}}>{needsFillingRooms.length}</strong> room{needsFillingRooms.length===1?'':'s'} marked as needing filling.
+                    <strong style={{color:G.coral}}>{matchRoomPool.length}</strong> room{matchRoomPool.length===1?'':'s'} marked as needing filling{propertyOptions.length>1 && activeProperties.length<propertyOptions.length ? ' at the properties you picked' : ''}.
                     Shall I match {scriptsNeeded} of them, or would you like to pick specific pairings yourself?
                   </div>
                   <div style={{display:'flex',gap:8}}>
-                    <button onClick={()=>buildProposal(scriptsNeeded)}
+                    <button onClick={()=>buildProposal(scriptsNeeded, matchRoomPool)}
                       style={{background:G.gold,border:'none',borderRadius:8,padding:'9px 18px',color:'#000',fontWeight:800,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>
                       Auto-Match {scriptsNeeded} →
                     </button>
@@ -1589,7 +1707,7 @@ function ContentPlan({ onGoTo }) {
                     const updated = [...proposal]; updated[i] = { ...pair, roomId: e.target.value || null }; setProposal(updated);
                   }} style={{background:G.card,border:`1px solid ${G.border}`,borderRadius:8,padding:'8px 12px',color:G.text,fontSize:12,outline:'none',fontFamily:'inherit',minWidth:200}}>
                     <option value="">No room assigned</option>
-                    {needsFillingRooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
+                    {matchRoomPool.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
                   </select>
                 </div>
               ))}
@@ -1631,16 +1749,16 @@ function ContentPlan({ onGoTo }) {
       )}
 
       {/* Past trips */}
-      {trips.filter(t => t.trip_date < today).length > 0 && (
+      {trips.filter(t => t.trip_date < today || t.status === 'completed').length > 0 && (
         <div style={{marginTop:28}}>
           <CLabel>Past Trips</CLabel>
-          {trips.filter(t=>t.trip_date<today).map(t=>(
+          {trips.filter(t=>t.trip_date<today || t.status==='completed').map(t=>(
             <div key={t.id} style={{background:G.card2,borderRadius:10,padding:'12px 16px',marginBottom:8,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
               <div>
-                <div style={{fontSize:13,fontWeight:700,color:'#888'}}>{new Date(t.trip_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
+                <div style={{fontSize:13,fontWeight:700,color:'#888'}}>{new Date(t.trip_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})} {t.status==='completed' && <span style={{color:G.green,fontSize:11}}>· Complete</span>}</div>
                 <div style={{fontSize:11,color:G.dim,marginTop:2}}>{t.scripts?.length||0} scripts · {t.location||'Coventry'}</div>
               </div>
-              <button onClick={()=>{setActiveTrip(t);setProposal(null);}} style={{background:'transparent',border:`1px solid ${G.dim}`,borderRadius:7,padding:'4px 12px',color:G.muted,cursor:'pointer',fontSize:11,fontFamily:'inherit'}}>View</button>
+              <button onClick={()=>{setActiveTrip(t);setProposal(null);setSelectedProperties(null);}} style={{background:'transparent',border:`1px solid ${G.dim}`,borderRadius:7,padding:'4px 12px',color:G.muted,cursor:'pointer',fontSize:11,fontFamily:'inherit'}}>View</button>
             </div>
           ))}
         </div>

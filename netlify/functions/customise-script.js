@@ -38,6 +38,11 @@ exports.handler = async (event) => {
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+  // Always customise from the untouched base script — never from a previously
+  // room-customised body, otherwise re-matching this script to a different
+  // room on a later trip would stack the old room's details into the new one.
+  const baseBody = script.original_body || script.body;
+
   const prompt = `You are editing a short TikTok/Instagram script for Allianz Housing Limited. The presenter is on camera at a real property.
 
 Your task: weave 1-2 natural sentences about the specific room into the script body. The tone is casual, direct — like the presenter is genuinely showing the viewer around. Do NOT add formal language or anything corporate.
@@ -46,7 +51,7 @@ ROOM BEING FILMED IN:
 ${roomDescription}
 
 ORIGINAL SCRIPT BODY:
-${script.body}
+${baseBody}
 
 Return ONLY the updated script body. No preamble, no explanation, no markdown. Just the script text with the room detail woven in naturally.`;
 
@@ -60,7 +65,7 @@ Return ONLY the updated script body. No preamble, no explanation, no markdown. J
 
   const { error: updateErr } = await supabase
     .from('scripts')
-    .update({ body: updatedBody, property_note: roomDescription })
+    .update({ body: updatedBody, property_note: roomDescription, original_body: baseBody })
     .eq('id', scriptId)
     .eq('workspace_id', ALLIANZ_WORKSPACE_ID);
 
