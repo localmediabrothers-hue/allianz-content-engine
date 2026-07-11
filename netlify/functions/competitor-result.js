@@ -70,8 +70,18 @@ exports.handler = async (event) => {
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
   const scrapedAt = new Date().toISOString();
 
+  // Skip anything already stored for this competitor — never re-insert a video we already have.
+  const { data: existing } = await supabase
+    .from('competitor_videos')
+    .select('url')
+    .eq('competitor_id', competitorId)
+    .eq('workspace_id', ALLIANZ_WORKSPACE_ID);
+  const existingUrls = new Set((existing || []).map(r => r.url));
+
   const normalized = items.map(item => normalizeVideo(item, platform));
-  const rows = items.map((item, i) => ({
+  const newIndexes = normalized.map((n, i) => (n.url && !existingUrls.has(n.url)) ? i : -1).filter(i => i !== -1);
+
+  const rows = newIndexes.map(i => ({
     workspace_id: ALLIANZ_WORKSPACE_ID,
     competitor_id: competitorId,
     url: normalized[i].url,
@@ -80,28 +90,28 @@ exports.handler = async (event) => {
     likes: normalized[i].likes,
     comments: normalized[i].comments,
     shares: normalized[i].shares,
-    raw_data: item,
+    raw_data: items[i],
     scraped_at: scrapedAt,
   }));
 
-  const { data: inserted, error: insertErr } = await supabase.from('competitor_videos').insert(rows).select('id');
-  if (insertErr) {
-    return { statusCode: 500, headers: cors, body: JSON.stringify({ error: `Save failed: ${insertErr.message}` }) };
+  if (rows.length) {
+    const { error: insertErr } = await supabase.from('competitor_videos').insert(rows);
+    if (insertErr) {
+      return { statusCode: 500, headers: cors, body: JSON.stringify({ error: `Save failed: ${insertErr.message}` }) };
+    }
   }
 
-  const newIds = (inserted || []).map(r => r.id);
-  if (newIds.length) {
-    await supabase.from('competitor_videos').delete()
-      .eq('competitor_id', competitorId)
-      .eq('workspace_id', ALLIANZ_WORKSPACE_ID)
-      .not('id', 'in', `(${newIds.join(',')})`);
-  }
+  const { count: totalCount } = await supabase
+    .from('competitor_videos')
+    .select('id', { count: 'exact', head: true })
+    .eq('competitor_id', competitorId)
+    .eq('workspace_id', ALLIANZ_WORKSPACE_ID);
 
   await supabase.from('competitors')
-    .update({ last_scraped: scrapedAt, total_videos_scraped: rows.length })
+    .update({ last_scraped: scrapedAt, total_videos_scraped: totalCount || 0 })
     .eq('id', competitorId);
 
   const videos = normalized.sort((a, b) => (b.views || 0) - (a.views || 0));
 
-  return { statusCode: 200, headers: cors, body: JSON.stringify({ videos, total: videos.length }) };
+  return { statusCode: 200, headers: cors, body: JSON.stringify({ videos, total: videos.length, newCount: rows.length, skippedDuplicates: normalized.length - rows.length }) };
 };

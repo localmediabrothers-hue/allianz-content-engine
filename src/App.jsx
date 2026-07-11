@@ -810,7 +810,14 @@ function Competitors({ onAnalyseVideo }) {
           setScraping(prev => { const n={...prev}; delete n[competitorId]; return n; });
           await load();
           if (selected && selected.id === competitorId) {
-            setVideos(d.videos || []);
+            // Re-fetch the full stored list — videos accumulate now, they don't get replaced,
+            // so the scrape response alone (this run's batch) isn't the whole picture.
+            const vr = await fetch(`/api/get-competitor-videos?competitorId=${competitorId}`);
+            const vd = await vr.json();
+            setVideos(vd.videos || []);
+          }
+          if (d.newCount !== undefined) {
+            alert(d.newCount > 0 ? `${d.newCount} new video${d.newCount>1?'s':''} added${d.skippedDuplicates>0?`, ${d.skippedDuplicates} already had.`:'.'}` : `No new videos — all ${d.skippedDuplicates} were already stored. Try a higher video count to reach further into their history.`);
           }
           return;
         }
