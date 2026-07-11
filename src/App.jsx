@@ -589,10 +589,39 @@ const VAULT_TABS = [
   { k:"rejected", l:"Rejected",       c:G.coral },
 ];
 
+function ScriptCard({ s, filter, tab, setStatus }) {
+  return (
+    <Card style={{marginBottom:12,borderLeft:`3px solid ${tab.c}`,borderRadius:"0 12px 12px 0"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,flexWrap:"wrap",gap:10}}>
+        <div style={{color:G.text,fontWeight:700,fontSize:14}}>{s.title}</div>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+          {filter==="pending" && (
+            <>
+              <button onClick={()=>setStatus(s.id,"unused")} style={{background:`${G.green}15`,border:`1px solid ${G.green}40`,borderRadius:7,padding:"5px 13px",fontSize:11,color:G.green,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>Approve</button>
+              <button onClick={()=>setStatus(s.id,"rejected")} style={{background:`${G.coral}15`,border:`1px solid ${G.coral}40`,borderRadius:7,padding:"5px 13px",fontSize:11,color:G.coral,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>Reject</button>
+            </>
+          )}
+          {filter==="unused" && (
+            <button onClick={()=>setStatus(s.id,"used")} style={{background:`${G.purple}15`,border:`1px solid ${G.purple}40`,borderRadius:7,padding:"5px 13px",fontSize:11,color:G.purple,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>Mark Used</button>
+          )}
+          {filter==="rejected" && (
+            <button onClick={()=>setStatus(s.id,"pending")} style={{background:"transparent",border:`1px solid ${G.dim}`,borderRadius:7,padding:"5px 13px",fontSize:11,color:G.muted,cursor:"pointer",fontFamily:"inherit"}}>Restore to Pending</button>
+          )}
+        </div>
+      </div>
+      <div style={{background:`${G.coral}0e`,border:`1px solid ${G.coral}20`,borderRadius:7,padding:"10px 13px",marginBottom:8,color:"#ddd",fontSize:14,fontStyle:"italic"}}>"{s.hook}"</div>
+      <div style={{color:"#888",fontSize:13,lineHeight:1.7,marginBottom:8}}>{s.body}</div>
+      <div style={{color:G.green,fontSize:12,fontWeight:700}}>{s.cta}</div>
+      {s.why && <div style={{color:"#333",fontSize:11,borderTop:`1px solid ${G.border}`,paddingTop:8,marginTop:8}}>{s.why}</div>}
+    </Card>
+  );
+}
+
 function Vault() {
   const [scripts,setScripts]=useState([]);
   const [busy,setBusy]=useState(true);
   const [filter,setFilter]=useState("pending");
+  const [bulkBusy,setBulkBusy]=useState({});
 
   useEffect(()=>{
     setBusy(true);
@@ -605,7 +634,33 @@ function Vault() {
     setScripts(prev=>prev.filter(s=>s.id!==id));
   }
 
+  async function bulkSetStatus(ids, status, key) {
+    setBulkBusy(prev=>({...prev,[key]:true}));
+    for (const id of ids) {
+      await fetch("/api/update-script",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({scriptId:id,status})});
+    }
+    setScripts(prev=>prev.filter(s=>!ids.includes(s.id)));
+    setBulkBusy(prev=>{const n={...prev};delete n[key];return n;});
+  }
+
   const tab = VAULT_TABS.find(t=>t.k===filter);
+
+  // Split pending scripts: property packs (share a batch_id) get grouped separately
+  // from regular video-analysis scripts, so a 15-script pack doesn't drown everything else.
+  let packs = [];
+  let solo = scripts;
+  if (filter === "pending") {
+    const byBatch = {};
+    solo = [];
+    scripts.forEach(s => {
+      if (s.batch_id) { (byBatch[s.batch_id] = byBatch[s.batch_id] || []).push(s); }
+      else solo.push(s);
+    });
+    packs = Object.entries(byBatch).map(([batchId, group]) => {
+      const propertyName = (group.find(g=>!g.property_note?.includes('—'))?.property_note) || group[0]?.property_note?.split(' — ')[0] || 'Property Pack';
+      return { batchId, propertyName, group };
+    });
+  }
 
   return (
     <div>
@@ -620,31 +675,27 @@ function Vault() {
           {filter==="pending" ? "nothing waiting for review — analyse a viral video to generate scripts" : `no ${tab.l.toLowerCase()} scripts`}
         </div>
       )}
-      {scripts.map(s=>(
-        <Card key={s.id} style={{marginBottom:12,borderLeft:`3px solid ${tab.c}`,borderRadius:"0 12px 12px 0"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,flexWrap:"wrap",gap:10}}>
-            <div style={{color:G.text,fontWeight:700,fontSize:14}}>{s.title}</div>
-            <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
-              {filter==="pending" && (
-                <>
-                  <button onClick={()=>setStatus(s.id,"unused")} style={{background:`${G.green}15`,border:`1px solid ${G.green}40`,borderRadius:7,padding:"5px 13px",fontSize:11,color:G.green,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>Approve</button>
-                  <button onClick={()=>setStatus(s.id,"rejected")} style={{background:`${G.coral}15`,border:`1px solid ${G.coral}40`,borderRadius:7,padding:"5px 13px",fontSize:11,color:G.coral,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>Reject</button>
-                </>
-              )}
-              {filter==="unused" && (
-                <button onClick={()=>setStatus(s.id,"used")} style={{background:`${G.purple}15`,border:`1px solid ${G.purple}40`,borderRadius:7,padding:"5px 13px",fontSize:11,color:G.purple,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>Mark Used</button>
-              )}
-              {filter==="rejected" && (
-                <button onClick={()=>setStatus(s.id,"pending")} style={{background:"transparent",border:`1px solid ${G.dim}`,borderRadius:7,padding:"5px 13px",fontSize:11,color:G.muted,cursor:"pointer",fontFamily:"inherit"}}>Restore to Pending</button>
-              )}
+
+      {packs.map(pack => {
+        const busyThis = !!bulkBusy[pack.batchId];
+        return (
+          <div key={pack.batchId} style={{marginBottom:24,border:`1px solid ${G.purple}30`,borderRadius:14,padding:16,background:`${G.purple}06`}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:10}}>
+              <div style={{fontSize:13,fontWeight:800,color:G.purple}}>📦 Property Pack — {pack.propertyName} ({pack.group.length} scripts)</div>
+              <div style={{display:'flex',gap:8}}>
+                <button onClick={()=>bulkSetStatus(pack.group.map(g=>g.id),"unused",pack.batchId)} disabled={busyThis}
+                  style={{background:`${G.green}15`,border:`1px solid ${G.green}40`,borderRadius:7,padding:"5px 13px",fontSize:11,color:G.green,cursor:'pointer',fontFamily:'inherit',fontWeight:700}}>Approve All</button>
+                <button onClick={()=>bulkSetStatus(pack.group.map(g=>g.id),"rejected",pack.batchId)} disabled={busyThis}
+                  style={{background:`${G.coral}15`,border:`1px solid ${G.coral}40`,borderRadius:7,padding:"5px 13px",fontSize:11,color:G.coral,cursor:'pointer',fontFamily:'inherit',fontWeight:700}}>Reject All</button>
+              </div>
             </div>
+            {pack.group.map(s => <ScriptCard key={s.id} s={s} filter={filter} tab={tab} setStatus={setStatus}/>)}
           </div>
-          <div style={{background:`${G.coral}0e`,border:`1px solid ${G.coral}20`,borderRadius:7,padding:"10px 13px",marginBottom:8,color:"#ddd",fontSize:14,fontStyle:"italic"}}>"{s.hook}"</div>
-          <div style={{color:"#888",fontSize:13,lineHeight:1.7,marginBottom:8}}>{s.body}</div>
-          <div style={{color:G.green,fontSize:12,fontWeight:700}}>{s.cta}</div>
-          {s.why && <div style={{color:"#333",fontSize:11,borderTop:`1px solid ${G.border}`,paddingTop:8,marginTop:8}}>{s.why}</div>}
-        </Card>
-      ))}
+        );
+      })}
+
+      {solo.length > 0 && packs.length > 0 && <CLabel color={G.gold}>From Video Analysis</CLabel>}
+      {solo.map(s => <ScriptCard key={s.id} s={s} filter={filter} tab={tab} setStatus={setStatus}/>)}
     </div>
   );
 }

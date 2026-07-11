@@ -38,6 +38,8 @@ Generate a coordinated content SET for this single filming trip:
 1. ONE "overview" script — a walkthrough of the whole property, presenter on camera, showing the general vibe/location/communal feel. 30-60 seconds.
 2. ONE short "mini" script PER ROOM listed above — quick, punchy, 15-25 seconds each, focused specifically on that one room's own features (the ones actually listed for it, don't invent details).
 
+IMPORTANT — several of these rooms may have near-identical descriptions (e.g. all "double bed, en-suite, fully furnished"). Do NOT let that produce near-identical scripts. Every room script must open with a DIFFERENT hook angle and lead with a DIFFERENT emphasis, even when the underlying features overlap — vary across things like: speed of move-in, price/affordability framing, a specific detail about that room's position in the building (e.g. "the corner room", "upstairs", "the quiet one at the back"), a different emotional angle (relief, excitement, FOMO, curiosity), or a different opening visual beat (start on the bed, start on the window, start walking in the door). If two rooms truly have nothing distinguishing them, invent a small, plausible, non-fabricated-fact way to differentiate the FRAMING (not the specs) — e.g. describing it as "room two of the tour" with a callback to the previous room, or a different rhetorical question to open with. Read back your ${roomAssignments.length} room scripts before finalizing — if any two feel copy-pasted, rewrite one.
+
 Casual, direct tone — NOT corporate. Presenter genuinely showing the viewer around.
 
 Return ONLY raw JSON, no markdown, no code fences, in this exact structure:
