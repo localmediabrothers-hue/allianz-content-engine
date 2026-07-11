@@ -22,10 +22,11 @@ exports.handler = async (event) => {
     .select('id, url, platform, analysis, video_data, status, created_at')
     .eq('workspace_id', ALLIANZ_WORKSPACE_ID)
     .eq('competitor_id', competitorId)
-    .eq('status', 'done')
-    .order('created_at', { ascending: false });
+    .eq('status', 'done');
 
   if (error) return { statusCode: 500, headers: cors, body: JSON.stringify({ error: error.message }) };
 
-  return { statusCode: 200, headers: cors, body: JSON.stringify({ analyses: analyses || [] }) };
+  const sorted = (analyses || []).sort((a, b) => (b.video_data?.views || 0) - (a.video_data?.views || 0));
+
+  return { statusCode: 200, headers: cors, body: JSON.stringify({ analyses: sorted }) };
 };

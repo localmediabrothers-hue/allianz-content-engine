@@ -889,6 +889,9 @@ function Competitors({ onAnalyseVideo }) {
       setAnalysingVideo(prev => { const n = { ...prev }; delete n[v.id]; return n; });
       setCompTab('analyses');
       await loadCompAnalyses(selected);
+      const vr = await fetch(`/api/get-competitor-videos?competitorId=${selected.id}`);
+      const vdata = await vr.json();
+      setVideos(vdata.videos || []);
     } catch (e) {
       setAnalysingVideo(prev => { const n = { ...prev }; delete n[v.id]; return n; });
       alert(e.message);
@@ -1023,11 +1026,12 @@ function Competitors({ onAnalyseVideo }) {
                     style={{color:G.muted,fontSize:11,border:`1px solid ${G.border}`,borderRadius:7,padding:'5px 10px',textDecoration:'none',whiteSpace:'nowrap',textAlign:'center'}}>View →</a>}
                   {vd.url && (() => {
                     const aState = analysingVideo[v.id];
+                    const already = vd.analysed;
                     return (
                       <button onClick={e=>{e.stopPropagation();if(!aState)analyseCompetitorVideo(v);}}
                         disabled={!!aState}
-                        style={{background:aState?G.card2:`${G.cyan}14`,border:`1px solid ${aState?G.border:`${G.cyan}40`}`,borderRadius:7,padding:'5px 10px',color:aState?G.muted:G.cyan,fontSize:11,fontWeight:700,cursor:aState?'not-allowed':'pointer',fontFamily:'inherit',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:5}}>
-                        {aState ? <><span style={{width:5,height:5,borderRadius:'50%',background:G.cyan,display:'inline-block',animation:'pulse 1s infinite'}}/>{aState==='analysing'?'Analysing...':'Scraping...'}</> : 'Analyse →'}
+                        style={{background:aState?G.card2:already?`${G.purple}14`:`${G.cyan}14`,border:`1px solid ${aState?G.border:already?`${G.purple}40`:`${G.cyan}40`}`,borderRadius:7,padding:'5px 10px',color:aState?G.muted:already?G.purple:G.cyan,fontSize:11,fontWeight:700,cursor:aState?'not-allowed':'pointer',fontFamily:'inherit',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:5}}>
+                        {aState ? <><span style={{width:5,height:5,borderRadius:'50%',background:G.cyan,display:'inline-block',animation:'pulse 1s infinite'}}/>{aState==='analysing'?'Analysing...':'Scraping...'}</> : already ? '♻️ Analyse Again' : 'Analyse →'}
                       </button>
                     );
                   })()}

@@ -27,7 +27,17 @@ exports.handler = async (event) => {
 
   if (error) return { statusCode: 500, headers: cors, body: JSON.stringify({ error: error.message }) };
 
-  const sorted = (data || []).sort((a, b) => (b.views || 0) - (a.views || 0));
+  const { data: analysed } = await supabase
+    .from('analyses')
+    .select('url')
+    .eq('competitor_id', competitorId)
+    .eq('workspace_id', ALLIANZ_WORKSPACE_ID)
+    .eq('status', 'done');
+  const analysedUrls = new Set((analysed || []).map(a => a.url));
+
+  const sorted = (data || [])
+    .map(v => ({ ...v, analysed: analysedUrls.has(v.url) }))
+    .sort((a, b) => (b.views || 0) - (a.views || 0));
 
   return { statusCode: 200, headers: cors, body: JSON.stringify({ videos: sorted }) };
 };
