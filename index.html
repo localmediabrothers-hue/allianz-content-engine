@@ -10,7 +10,28 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Reconexus" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <title>Reconexus — Content Intelligence Engine</title>
+    <style>
+      /* Renders immediately from raw HTML, before the JS bundle loads or executes —
+         so a slow/weak connection shows branded loading feedback instead of a dead
+         black screen. React replaces this the moment it mounts. */
+      html,body{background:#0a0a09;margin:0;}
+      #root:empty{
+        min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+        font-family:system-ui,-apple-system,sans-serif;
+      }
+      #root:empty::before{
+        content:'';width:52px;height:52px;border-radius:50%;
+        border:2px solid #FFB80040;border-top-color:#FFB800;
+        animation:rx-spin 0.9s linear infinite;
+      }
+      #root:empty::after{
+        content:'RECONEXUS';color:#FFB800;font-size:13px;font-weight:800;letter-spacing:3px;
+      }
+      @keyframes rx-spin{to{transform:rotate(360deg)}}
+    </style>
   </head>
   <body>
     <div id="root"></div>
