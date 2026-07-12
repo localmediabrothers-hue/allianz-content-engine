@@ -62,9 +62,9 @@ const NAV = [
   { id:"chat",    label:"Chat Reconexus",n:"chat",   c:G.gold   },
 ];
 
-function Sidebar({ cur, go }) {
+function Sidebar({ cur, go, open, onClose }) {
   return (
-    <div style={{width:240,minHeight:"100vh",background:"#0f0f0d",borderRight:`1px solid ${G.border}`,display:"flex",flexDirection:"column",position:"fixed",left:0,top:0,zIndex:300}}>
+    <div className={`rx-sidebar${open ? " rx-sidebar-open" : ""}`} style={{width:240,minHeight:"100vh",background:"#0f0f0d",borderRight:`1px solid ${G.border}`,display:"flex",flexDirection:"column",position:"fixed",left:0,top:0,zIndex:300}}>
       <div style={{padding:"24px 20px 20px",borderBottom:`1px solid ${G.border}`,textAlign:"center"}}>
         <div style={{display:"flex",justifyContent:"center",marginBottom:12}}>
           <Brain s={56}/>
@@ -76,7 +76,7 @@ function Sidebar({ cur, go }) {
         {NAV.map(item => {
           const on = cur === item.id;
           return (
-            <button key={item.id} onClick={() => go(item.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:11,background:on?`${item.c}14`:"transparent",border:"none",borderLeft:`2px solid ${on?item.c:"transparent"}`,borderRadius:"0 10px 10px 0",padding:"10px 14px",cursor:"pointer",marginBottom:3,fontFamily:"inherit",transition:"all .15s"}}>
+            <button key={item.id} onClick={() => { go(item.id); onClose?.(); }} style={{width:"100%",display:"flex",alignItems:"center",gap:11,background:on?`${item.c}14`:"transparent",border:"none",borderLeft:`2px solid ${on?item.c:"transparent"}`,borderRadius:"0 10px 10px 0",padding:"10px 14px",cursor:"pointer",marginBottom:3,fontFamily:"inherit",transition:"all .15s"}}>
               <NIcon n={item.n} sz={16} col={on?item.c:G.muted}/>
               <span style={{fontSize:13,fontWeight:on?700:400,color:on?item.c:G.muted}}>{item.label}</span>
             </button>
@@ -91,12 +91,17 @@ function Sidebar({ cur, go }) {
 }
 
 /* ─── Header ─────────────────────────────────────────────────────────────── */
-function Header({ title, sub }) {
+function Header({ title, sub, onMenuClick }) {
   return (
     <div style={{padding:"22px 32px 0",display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
-      <div>
-        <div style={{fontSize:22,fontWeight:800,color:G.text,letterSpacing:"-0.5px"}}>{title}</div>
-        {sub && <div style={{fontSize:13,color:G.muted,marginTop:3}}>{sub}</div>}
+      <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+        <button className="rx-hamburger" onClick={onMenuClick} aria-label="Open menu" style={{background:G.card,border:`1px solid ${G.border}`,borderRadius:10,width:38,height:38,cursor:"pointer",flexShrink:0}}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={G.text} strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+        <div>
+          <div style={{fontSize:22,fontWeight:800,color:G.text,letterSpacing:"-0.5px"}}>{title}</div>
+          {sub && <div style={{fontSize:13,color:G.muted,marginTop:3}}>{sub}</div>}
+        </div>
       </div>
       <div style={{display:"flex",alignItems:"center",gap:8,background:G.card,border:`1px solid ${G.border}`,borderRadius:20,padding:"7px 14px"}}>
         <div style={{width:8,height:8,borderRadius:"50%",background:G.green,animation:"pulse 2s infinite"}}/>
@@ -307,7 +312,7 @@ function Home({ onGoToPlan }) {
         <Stat label="TikTok / Instagram" val={`${tik} / ${ins}`} color={G.coral} sub="platform split"/>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 260px",gap:14,marginBottom:20}}>
+      <div className="rx-grid-2" style={{display:"grid",gridTemplateColumns:"1fr 260px",gap:14,marginBottom:20}}>
         <Card>
           <CLabel color={G.cyan}>Analysis Activity — This Week</CLabel>
           <LineChart data={chart} color={G.gold} h={120}/>
@@ -2097,6 +2102,7 @@ const PAGE_META = {
 
 export default function App() {
   const [sec, setSec] = useState("home");
+  const [mobileOpen, setMobileOpen] = useState(false);
   const meta = PAGE_META[sec];
 
   return (
@@ -2109,12 +2115,26 @@ export default function App() {
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
         ::-webkit-scrollbar{width:4px;background:${G.bg};}
         ::-webkit-scrollbar-thumb{background:${G.dim};border-radius:2px;}
+
+        .rx-hamburger{display:none;}
+        .rx-backdrop{display:none;}
+
+        @media (max-width: 900px){
+          .rx-sidebar{transform:translateX(-100%) !important;transition:transform .25s ease;box-shadow:0 0 40px rgba(0,0,0,.6);}
+          .rx-sidebar.rx-sidebar-open{transform:translateX(0) !important;}
+          .rx-content{margin-left:0 !important;}
+          .rx-hamburger{display:flex !important;align-items:center;justify-content:center;}
+          .rx-backdrop.rx-backdrop-open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:290;}
+          main{padding:16px !important;}
+          .rx-grid-2{grid-template-columns:1fr !important;}
+        }
       `}</style>
 
-      <Sidebar cur={sec} go={setSec}/>
+      <Sidebar cur={sec} go={setSec} open={mobileOpen} onClose={()=>setMobileOpen(false)}/>
+      <div className={`rx-backdrop${mobileOpen ? " rx-backdrop-open" : ""}`} onClick={()=>setMobileOpen(false)}/>
 
-      <div style={{marginLeft:240,flex:1,display:"flex",flexDirection:"column",minHeight:"100vh"}}>
-        <Header title={meta.title} sub={meta.sub}/>
+      <div className="rx-content" style={{marginLeft:240,flex:1,display:"flex",flexDirection:"column",minHeight:"100vh",minWidth:0}}>
+        <Header title={meta.title} sub={meta.sub} onMenuClick={()=>setMobileOpen(true)}/>
         <main style={{padding:"24px 32px 60px",flex:1}}>
           {sec==="home"    && <Home onGoToPlan={()=>setSec("plan")}/>}
           {sec==="analyse" && <Analyse/>}
