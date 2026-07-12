@@ -65,7 +65,7 @@ const NAV = [
 function Sidebar({ cur, go, open, onClose }) {
   return (
     <div className={`rx-sidebar${open ? " rx-sidebar-open" : ""}`} style={{width:240,minHeight:"100vh",background:"#0f0f0d",borderRight:`1px solid ${G.border}`,display:"flex",flexDirection:"column",position:"fixed",left:0,top:0,zIndex:300}}>
-      <div style={{padding:"24px 20px 20px",borderBottom:`1px solid ${G.border}`,textAlign:"center"}}>
+      <div style={{padding:"24px 20px 20px",paddingTop:"max(24px, calc(env(safe-area-inset-top, 0px) + 14px))",borderBottom:`1px solid ${G.border}`,textAlign:"center"}}>
         <div style={{display:"flex",justifyContent:"center",marginBottom:12}}>
           <Brain s={56}/>
         </div>
@@ -83,7 +83,7 @@ function Sidebar({ cur, go, open, onClose }) {
           );
         })}
       </nav>
-      <div style={{padding:"14px 20px",borderTop:`1px solid ${G.border}`}}>
+      <div style={{padding:"14px 20px",paddingBottom:"max(14px, env(safe-area-inset-bottom, 0px))",borderTop:`1px solid ${G.border}`}}>
         <div style={{fontSize:9,color:G.dim,letterSpacing:"1.5px",textTransform:"uppercase"}}>Built by Local Media Brothers</div>
       </div>
     </div>
@@ -93,7 +93,7 @@ function Sidebar({ cur, go, open, onClose }) {
 /* ─── Header ─────────────────────────────────────────────────────────────── */
 function Header({ title, sub, onMenuClick }) {
   return (
-    <div style={{padding:"22px 32px 0",display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
+    <div style={{padding:"22px 32px 0",paddingTop:"max(22px, calc(env(safe-area-inset-top, 0px) + 12px))",display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
       <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
         <button className="rx-hamburger" onClick={onMenuClick} aria-label="Open menu" style={{background:G.card,border:`1px solid ${G.border}`,borderRadius:10,width:38,height:38,cursor:"pointer",flexShrink:0}}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={G.text} strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
